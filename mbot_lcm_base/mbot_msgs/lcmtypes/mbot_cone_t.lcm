@@ -1,0 +1,7 @@
+package mbot_lcm_msgs;
+
+struct mbot_cone_t
+{
+    string name;
+    pose3D_t pose;
+}

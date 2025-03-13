@@ -1,0 +1,8 @@
+package mbot_lcm_msgs;
+
+struct mbot_analog_t
+{
+    int64_t utime;
+    int16_t raw[4]; // no units
+    float volts[4]; // volts
+}
