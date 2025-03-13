@@ -46,21 +46,22 @@ bool mbot_loop(repeating_timer_t *rt)
     mbot_read_imu(&mbot_imu);
     mbot_read_adc(&mbot_analog_inputs);
     mbot_calculate_motor_vel(mbot_encoders, &mbot_motor_vel);
-
+    /*
     mbot_calculate_diff_body_vel(   mbot_motor_vel.velocity[MOT_L],
                                     mbot_motor_vel.velocity[MOT_R],
                                     &mbot_vel
                                 );
-
-    // Update mbot_odometry
-    mbot_odometry.utime = global_utime;
-    mbot_calculate_odometry(mbot_vel, MAIN_LOOP_PERIOD, &mbot_odometry, &imu);
+    */
 
     mbot_calculate_diff_body_vel_imu(   mbot_motor_vel.velocity[MOT_L],
-        mbot_motor_vel.velocity[MOT_R],
-        mbot_imu,
-        &mbot_vel
-    );
+                                        mbot_motor_vel.velocity[MOT_R],
+                                        &mbot_imu,
+                                        &mbot_vel
+                                    );
+    // Update mbot_odometry
+    mbot_odometry.utime = global_utime;
+    mbot_calculate_odometry(mbot_vel, MAIN_LOOP_PERIOD, &mbot_odometry);
+
 
     // only run if we've got 2 way communication...
     if (global_comms_status == COMMS_OK)
@@ -283,8 +284,15 @@ int mbot_calculate_diff_body_vel(float wheel_left_vel, float wheel_right_vel, se
     return 0; // Return 0 to indicate success
 }
 
-int mbot_calculate_diff_body_vel_imu(float wheel_left_vel, float wheel_right_vel, serial_mbot_imu_t imu, serial_twist2D_t *mbot_vel){
-    TODO:    
+int mbot_calculate_diff_body_vel_imu(float wheel_left_vel, float wheel_right_vel, serial_mbot_imu_t *imu, serial_twist2D_t *mbot_vel){
+    mbot_vel->vx =  DIFF_WHEEL_RADIUS * (wheel_left_vel - wheel_right_vel) / 2.0f;
+    mbot_vel->vy = 0;
+    float mbot_odom_wz =  DIFF_WHEEL_RADIUS * (-wheel_left_vel - wheel_right_vel) / (2.0f * DIFF_BASE_RADIUS);
+    float mbot_imu_theta = imu->gyro[2];
+
+    if(abs(mbot_imu_theta - mbot_odom_wz) > 0.125) mbot_vel->wz = mbot_imu_theta;
+    else mbot_vel->wz = mbot_odom_wz;
+
     return 0; // Return 0 to indicate success
 }
 

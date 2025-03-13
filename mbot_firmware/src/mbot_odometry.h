@@ -10,4 +10,4 @@
  * @param[out] odometry Pointer to the structure where the calculated odometry will be stored
  * @return int          Returns 0 on success
  */
-int mbot_calculate_odometry(serial_twist2D_t mbot_vel,  float dt, serial_pose2D_t *odometry, serial_mbot_imu_t *imu);
+int mbot_calculate_odometry(serial_twist2D_t mbot_vel,  float dt, serial_pose2D_t *odometry);

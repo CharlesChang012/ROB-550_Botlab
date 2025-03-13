@@ -44,6 +44,6 @@ int mbot_calculate_diff_body_vel(float wheel_left_vel, float wheel_right_vel, se
  * @param[out] mbot_vel       Pointer to the structure where the calculated body velocity will be stored
  * @return int                Returns 0 on success
  */
-int mbot_calculate_diff_body_vel_imu(float wheel_left_vel, float wheel_right_vel, serial_mbot_imu_t imu, serial_twist2D_t *mbot_vel);
+int mbot_calculate_diff_body_vel_imu(float wheel_left_vel, float wheel_right_vel, serial_mbot_imu_t *imu, serial_twist2D_t *mbot_vel);
 
 #endif /*MBOT_CLASSIC_H*/
