@@ -1,0 +1,6 @@
+# vscode cache
+*/__pycache__
+
+# camera calibration
+images/*.jpg
+cam_calibration_data.npz
