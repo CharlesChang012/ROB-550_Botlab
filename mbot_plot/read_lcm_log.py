@@ -6,18 +6,41 @@ Latest update date: 05/20/2025
 
 import sys
 import lcm
+import argparse
+import matplotlib.pyplot as plt
 from mbot_lcm_msgs import pose2D_t
 
-import matplotlib.pyplot as plt
+parser = argparse.ArgumentParser()
+# Add parameters (arguments)
+parser.add_argument('-m', '--map', type=str, help="Map: square or cp1", required=True)
+parser.add_argument('-f', '--file', type=str, help="Log file to read and plot", required=True)
+parser.add_argument('-s', '--speed', type=str, help="high or low speed", required=False)
+args = parser.parse_args()
 
-## User defined variables
-# CP1 maze boundary
-x_bound = [-0.305, -0.305, 0.305, 0.305, 1.525, 1.525, 1.525, 2.745, 2.745, 3.355, 3.355, 2.135, 2.135, 2.135, 2.135, 0.915, 0.915, 0.915, -0.305]
-y_bound = [0.305, -0.305, -0.305, -0.915, -0.915, 0.305, -0.915, -0.915, -0.305, -0.305, 0.305, 0.305, -0.305, 0.305, 0.915, 0.915,  -0.305, 0.305, 0.305]
+if args.map == "square":
+    x_bound = [-0.5, 1.5, 1.5, -0.5, -0.5]
+    y_bound = [-0.5, -0.5, 1.5, 1.5, -0.5]
 
-# CP1 maze start and goal pose
-pose_start = [0, 0]
-pose_goal = [3.05, 0]
+    pose_start = [0.0, 0.0]
+    pose_goal = [0.0, 0.0]
+
+    # Ground truth
+    x_gt = [0.0, 1.0, 1.0, 0.0, 0.0]
+    y_gt = [0.0, 0.0, 1.0, 1.0, 0.0]
+
+elif args.map == "cp1":
+    ## User defined variables
+    # CP1 maze boundary
+    x_bound = [-0.305, -0.305, 0.305, 0.305, 1.525, 1.525, 1.525, 2.745, 2.745, 3.355, 3.355, 2.135, 2.135, 2.135, 2.135, 0.915, 0.915, 0.915, -0.305]
+    y_bound = [0.305, -0.305, -0.305, -0.915, -0.915, 0.305, -0.915, -0.915, -0.305, -0.305, 0.305, 0.305, -0.305, 0.305, 0.915, 0.915,  -0.305, 0.305, 0.305]
+
+    # CP1 maze start and goal pose
+    pose_start = [0, 0]
+    pose_goal = [3.05, 0]
+
+    # Ground truth
+    x_gt = [0.0, 0.61, 0.61, 1.22, 1.22, 1.83, 1.83, 2.44, 2.44, 3.05]
+    y_gt = [0.0, 0.0, -0.61, -0.61, 0.61, 0.61, -0.61, -0.61, 0.0, 0.0]
 
 # Check if the user has provided a log file as an argument
 if len(sys.argv) < 2:
@@ -25,7 +48,7 @@ if len(sys.argv) < 2:
     sys.exit(1)
 
 # Open the event log file in read mode
-log = lcm.EventLog(sys.argv[1], "r")
+log = lcm.EventLog(args.file, "r")
 
 # pose values in log files
 x = []
@@ -62,12 +85,21 @@ plt.plot(x_bound, y_bound, marker='.', linestyle='-', color='black', label="Boun
 # Plot the trajectory of the robot
 plt.plot(x, y, marker='o', linestyle='-', color='b', label="Trajectory")
 
+# Plot the ground truth of the path
+plt.plot(x_gt, y_gt, linestyle='--', color='r', label="Ground truth")
+
 # Plot start and goal pose
 plt.scatter(pose_start[0], pose_start[1],  marker='o', color='r', label='Start Pose', s = 150)
 plt.scatter(pose_goal[0], pose_goal[1], marker='*', color='r', label='Goal Pose', s = 150)
 
 # Optional: Add labels, title, and grid
-plt.title('Robot Trajectory at Low Speed')
+if args.speed == "low":
+    plt.title('Robot Trajectory at Low Speed')
+elif args.speed == "high":
+    plt.title('Robot Trajectory at High Speed')
+else:
+    plt.title('Robot Trajectory at Square')
+
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
 plt.grid(True)
