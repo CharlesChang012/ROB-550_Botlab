@@ -26,15 +26,15 @@ Not yet ready...
 ## Code structure
 
 ### Relevant
-- [mbot_autonomy]
-- [mbot_bridge]
-- [mbot_firmware]
-- [mbot_gui]
-- [mbot_lcm_base]
-- [mbot_web_app-v2.0.0]
-- [rplidar_lcm_driver]
-- [mbot_plot]
-- [mbot_vision]
+- [mbot_autonomy](mbot_autonomy)
+- [mbot_bridge](mbot_bridge)
+- [mbot_firmware](mbot_firmware)
+- [mbot_gui](mbot_gui)
+- [mbot_lcm_base](mbot_lcm_base)
+- [mbot_web_app-v2.0.0](mbot_web_app-v2.0.0)
+- [rplidar_lcm_driver](rplidar_lcm_driver)
+- [mbot_plot](mbot_plot)
+- [mbot_vision](mbot_vision)
 
 
 ### Irrelevant
