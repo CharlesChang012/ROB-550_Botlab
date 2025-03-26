@@ -11,12 +11,17 @@ Not yet ready...
 
 ## Results
 ### PID controll for navigation through maze with waypoints
- - Smart Motion Controller
-![Maze smart motion controller low speed](media/cp1_smart_low_speed.jpg)
-![Maze smart motion controller high speed](media/cp1_smart_high_speed.jpg)
- - Pure Pursuit Motion Controller
-![Maze pure pursuit motion controller low speed](media/cp1_pure_pursuit_low_speed.jpg)
-![Maze pure pursuit motion controller high speed](media/cp1_pure_pursuit_high_speed.jpg)
+- **Smart Motion Controller**  
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/cp1_smart_low_speed.jpg" alt="Maze smart motion controller low speed" style="width: 45%;" />
+    <img src="media/cp1_smart_high_speed.jpg" alt="Maze smart motion controller high speed" style="width: 45%;" />
+  </div>
+
+- **Pure Pursuit Motion Controller**  
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/CP1_pure_pursuit_low_speed.jpg" alt="Maze pure pursuit motion controller low speed" style="width: 45%;" />
+    <img src="media/CP1_pure_pursuit_high_speed.jpg" alt="Maze pure pursuit motion controller high speed" style="width: 45%;" />
+  </div>
 
 ## Code structure
 
