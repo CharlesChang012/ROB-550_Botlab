@@ -143,7 +143,7 @@ class SmartManeuverController : public ManeuverControllerBase
 {
 
 private:
-    float pid[3] = {1.0, 2.5, 0.0}; //kp, ka, kb
+    float pid[3] = {1.0, 2.5, 0.1}; //kp, ka, kb 1.0, 2.5, 0.0
     float d_end_crit = 0.02;
     float d_end_midsteps = 0.08;
     float angle_end_crit = 0.2;
@@ -188,6 +188,53 @@ public:
     }
 };
 
+/*------------------ User Defined Controller -------------------*/
+class PurePursuitManeuverController : public ManeuverControllerBase
+{
+
+private:
+    float Kx = 0.8; 
+    float wz_pid[3] = {0, 0, 2.0}; // Ka, Kb, Kw
+    float d_end_crit = 0.02;
+    float d_end_midsteps = 0.08;
+    float angle_end_crit = 0.2;
+public:
+    PurePursuitManeuverController() = default;   
+    virtual mbot_lcm_msgs::twist2D_t get_command(const mbot_lcm_msgs::pose2D_t& pose, const mbot_lcm_msgs::pose2D_t& target) override
+    {
+        float vel_sign = 1;
+        float dx = target.x - pose.x;
+        float dy = target.y - pose.y;
+        
+        float alpha = angle_diff(atan2(dy,dx), pose.theta);
+        float L = 0.5;
+        float xg = L * cos(alpha);
+        float yg = L * sin(alpha);
+        float r = L * L / (2 * yg);
+
+        float fwd_vel = vel_sign *  Kx * L;
+        float turn_vel = wz_pid[2] * (1 / r);
+
+        // If alpha is more than 45 degrees, turn in place and then go
+        if (fabs(alpha) > M_PI_4)
+        {
+            fwd_vel = 0;
+        }
+
+        // printf("%f,%f\n", fwd_vel, turn_vel);
+        return {0, fwd_vel, 0, turn_vel};
+    }
+
+    virtual bool target_reached(const mbot_lcm_msgs::pose2D_t& pose, const mbot_lcm_msgs::pose2D_t& target, bool is_end_pose)  override
+    {
+        float distance = d_end_midsteps;
+        if (is_end_pose)
+            distance = d_end_crit;
+        return ((fabs(pose.x - target.x) < distance) && (fabs(pose.y - target.y)  < distance));
+    }
+};
+/*-----------------------------------------------------------------*/
+
 class MotionController
 { 
 public: 
@@ -206,9 +253,9 @@ public:
 	    timesync_initialized_ = false;
 
         // Default velocity limits
-        vel_limits_.vx = 0.8;   // low speed : 0.3, high speed : 0.8
+        vel_limits_.vx = 0.3;   // low speed : 0.3, high speed : 0.8
         vel_limits_.vy = 0;
-        vel_limits_.wz = M_PI;   // low speed : M_PI * 2.0 / 3.0, high speed : M_PI
+        vel_limits_.wz = M_PI * 2.0 / 3.0;   // low speed : M_PI * 2.0 / 3.0, high speed : M_PI
     }
     
     /**
@@ -241,6 +288,20 @@ public:
             }
 
             ///////  TODO: Add different states when adding maneuver controls /////// 
+            /*------------------------ User Defined Controller -----------------------*/
+            if (state_ == PURE_PURSUIT) 
+            {
+                if (pure_pursuit_controller.target_reached(pose, target, is_last_target))
+                {
+                    if (is_last_target)
+                        state_ = FINAL_TURN;
+                    else if(!assignNextTarget())
+                        printf("Target reached! (%f,%f,%f)\n", target.x, target.y, target.theta);
+                }
+                else cmd = pure_pursuit_controller.get_command(pose, target);
+            }
+            /*--------------------------------------------------------------------------*/
+
             if(state_ == INITIAL_TURN)
             { 
                 if(turn_controller.target_reached(pose, target, is_last_target))
@@ -312,7 +373,8 @@ public:
         std::cout << std::endl;
 
         // assignNextTarget(); // This eats the first waypoint
-        state_ = SMART;
+        //state_ = SMART;
+        state_ = PURE_PURSUIT;
 
         //confirm that the path was received
         mbot_lcm_msgs::mbot_message_received_t confirm {now(), path->utime, channel};
@@ -355,7 +417,8 @@ private:
         INITIAL_TURN,
         DRIVE,
         FINAL_TURN, // to get to the pose heading
-        SMART
+        SMART,
+        PURE_PURSUIT
     };
     
     mbot_lcm_msgs::pose2D_t odomToGlobalFrame_;      // transform to convert odometry into the global/map coordinates for navigating in a map
@@ -374,6 +437,9 @@ private:
     StraightManeuverController straight_controller;
     SmartManeuverController smart_controller;
 
+    /* User Defined Controller */
+    PurePursuitManeuverController pure_pursuit_controller;
+
     int64_t now()
     {
 	    return utime_now() + time_offset;
@@ -382,7 +448,8 @@ private:
     bool assignNextTarget(void)
     {
         if(!targets_.empty()) { targets_.pop_back(); }
-        state_ = SMART; 
+        //state_ = SMART; 
+        state_ = PURE_PURSUIT; 
         return !targets_.empty();
     }
     
