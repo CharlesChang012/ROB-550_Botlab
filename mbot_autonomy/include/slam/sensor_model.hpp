@@ -1,78 +1,91 @@
-#ifndef SLAM_SENSOR_MODEL_HPP
-#define SLAM_SENSOR_MODEL_HPP
+#ifndef SLAM_ACTION_MODEL_HPP
+#define SLAM_ACTION_MODEL_HPP
 
-class  lidar_t;
-class  OccupancyGrid;
-struct particle_t;
-
-
-#include <utils/geometric/point.hpp>
+#include <mbot_lcm_msgs/pose2D_t.hpp>
 #include <mbot_lcm_msgs/particle_t.hpp>
-#include <slam/moving_laser_scan.hpp>
-#include <slam/occupancy_grid.hpp>
-#include <utils/grid_utils.hpp>
-#include <list>
-#include <numeric>
 #include <random>
 
-
 /**
-* SensorModel implement a sensor model for computing the likelihood that a laser scan was measured from a
-* provided pose, give a map of the environment.
-* 
-* A sensor model is compute the unnormalized likelihood of a particle in the proposal distribution.
+* ActionModel implements the sampling-based odometry action model for estimating the motion of the robot between
+* time t and t'.
 *
-* To use the SensorModel, a single method exists:
+* An action model is used to propagate a sample from the prior distribution, x, into
+* the proposal distribution, x', based on the supplied motion estimate of the robot
+* in the time interval [t, t'].
 *
-*   - double likelihood(const particle_t& particle, const lidar_t& scan, const OccupancyGrid& map)
+* To use the ActionModel, a two methods exist:
 *
-* likelihood() computes the likelihood of the provided particle, given the most recent laser scan and map estimate.
+*   - bool updateAction(const pose2D_t& odometry);
+*   - particle_t applyAction(const particle_t& sample);
+*
+* updateAction() provides the most recent odometry data so the action model can update the distributions from
+* which it will sample.
+*
+* applyAction() applies the action to the provided sample and returns a new sample that can be part of the proposal
+* distribution for the particle filter.
 */
-class SensorModel
+class ActionModel
 {
-
-    // using pose_offset_queue_t = std::queue<pose_offset_t>;
-    using pose_offset_vector_t = std::vector<Point<int>>;
-
 public:
 
     /**
-    * Constructor for SensorModel.
+    * Constructor for ActionModel.
     */
-    SensorModel(void);
+    ActionModel(void);
 
     /**
-    * likelihood computes the likelihood of the provided particle, given the most recent laser scan and map estimate.
-    * 
-    * \param    particle            Particle for which the log-likelihood will be calculated
-    * \param    scan                Laser scan to use for estimating log-likelihood
-    * \param    map                 Current map of the environment
-    * \return   Likelihood of the particle given the current map and laser scan.
+    * updateAction sets up the motion model for the current update for the localization.
+    * After initialization, calls to applyAction() will be made, so all distributions based on sensor data
+    * should be created here.
+    *
+    * \param    odometry            Current odometry data from the robot
+    * \return   The pose transform distribution representing the uncertainty of the robot's motion.
     */
-    double likelihood(const mbot_lcm_msgs::particle_t& particle,
-                      const mbot_lcm_msgs::lidar_t& scan,
-                      const OccupancyGrid& map);
+    bool updateAction(const mbot_lcm_msgs::pose2D_t& odometry);
 
-    float max_scan_score;  // TODO: make getter
+    /**
+    * applyAction applies the motion to the provided sample and returns a new sample that
+    * can be part of the proposal distribution for the particle filter.
+    *
+    * \param    sample          Sample to be moved
+    * \return   New sample based on distribution from the motion model at the current update.
+    */
+    mbot_lcm_msgs::particle_t applyAction(const mbot_lcm_msgs::particle_t& sample);
+
+    void resetPrevious(const mbot_lcm_msgs::pose2D_t& odometry);
 
 private:
+
+    ////////// TODO: Add private member variables needed for you implementation ///////////////////
+    const float k1_;
+    const float k2_;
+    double min_dist_;
+    double min_theta_;
+
+    mbot_lcm_msgs::pose2D_t previousPose_;
+    double dx_;
+    double dy_;
+    double dtheta_;
+    uint64_t utime_;
+
+    bool initialized_;
+
+    std::mt19937 numberGenerator_;
+
+    float xStd_;
+    float yStd_;
+    float thetaStd_;
+
+    // User Defined Variables
+    float rot1_;
+    float rot2_;
+    float trans_;
+
+    float rot1Std_;
+    float rot2Std_;
+    float transStd_;
     
-    ///////// TODO: Add any private members for your SensorModel ///////////////////
-    const float sigma_hit_;
-	const int occupancy_threshold_;
-    const int ray_stride_;
-    const int max_ray_range_;
-
-    pose_offset_vector_t bfs_offsets_;
-    const int search_range;
-    float max_offset_norm;
-    float offset_quality_weight;
-
-    double NormalPdf(const double& x);
-    double scoreRay(const adjusted_ray_t& ray, const OccupancyGrid& map);
-    Point<float> getRayEndPointOnMap(const adjusted_ray_t& ray, const OccupancyGrid& map);
-    Point<int> gridBFS(const Point<int> endPoint, const OccupancyGrid& map);
-    void initialize_bfs_offsets();
+    bool moved_;
 };
 
-#endif // SLAM_SENSOR_MODEL_HPP
+#endif // SLAM_ACTION_MODEL_HPP
