@@ -75,6 +75,17 @@ private:
     float xStd_;
     float yStd_;
     float thetaStd_;
+
+    // User Defined Variables
+    float rot1_;
+    float rot2_;
+    float trans_;
+
+    float rot1Std_;
+    float rot2Std_;
+    float transStd_;
+    
+    bool moved_;
 };
 
 #endif // SLAM_ACTION_MODEL_HPP
