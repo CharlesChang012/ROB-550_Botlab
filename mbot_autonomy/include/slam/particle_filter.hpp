@@ -292,6 +292,10 @@ private:
 
     SamplingAugmentation samplingAugmentation_;
     RandomPoseSampler randomPoseGen_;
+
+    /*---------------------- User Defined Functions -------------------*/
+    ParticleList getSortedParticlesByWeight(const ParticleList& particles);
+    void calculateDistributionQuality(const ParticleList& particles);
 };
 
 #endif // SLAM_PARTICLE_FILTER_HPP

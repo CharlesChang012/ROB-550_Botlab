@@ -4,7 +4,8 @@
 #include <mbot_lcm_msgs/pose2D_t.hpp>
 #include <mbot_lcm_msgs/particle_t.hpp>
 #include <cassert>
-
+#include <utils/geometric/angle_functions.hpp>
+#include <ctime>
 
 ParticleFilter::ParticleFilter(int numParticles)
 : kNumParticles_ (numParticles),
@@ -20,14 +21,45 @@ ParticleFilter::ParticleFilter(int numParticles)
 void ParticleFilter::initializeFilterAtPose(const mbot_lcm_msgs::pose2D_t& pose)
 {
     ///////////// TODO: Implement your method for initializing the particles in the particle filter /////////////////
-    
+    double sampleWeight = 1.0/kNumParticles_;
+    posteriorPose_ = pose;
+
+    for(auto &p : posterior_){
+        p.pose.x = posteriorPose_.x;
+        p.pose.y = posteriorPose_.y;
+        p.pose.theta = wrap_to_pi(posteriorPose_.theta);
+        p.weight = sampleWeight;
+        p.pose.utime =  pose.utime;
+        p.parent_pose = p.pose;
+    }
 
 }
 
 void ParticleFilter::initializeFilterRandomly(const OccupancyGrid& map)
 {
     ///////////// TODO: Implement your method for initializing the particles in the particle filter /////////////////
-    
+    std::random_device rd;
+    std::mt19937 generator(rd());
+
+    // Random number generation for the range of x, y, and theta values
+    std::uniform_real_distribution<> x_dist(0.0, map.widthInMeters());  // x within map bounds 
+    std::uniform_real_distribution<> y_dist(0.0, map.heightInMeters());  // y within map bounds 
+    std::uniform_real_distribution<> theta_dist(-M_PI, M_PI);  // theta in the range [-pi, pi]
+
+    double sampleWeight = 1.0/kNumParticles_;
+
+    for (auto &p : posterior_) {
+        p.pose.x = x_dist(generator);  // Random x position
+        p.pose.y = y_dist(generator);  // Random y position
+        // Point<double> p_pose_grid(x_dist(generator), y_dist(generator));
+        // Point<double> p_pose = grid_position_to_global_position(p_pose_grid, map);
+        // p.pose.x = p_pose.x;
+        // p.pose.y = p_pose.y;
+        p.pose.theta = wrap_to_pi(theta_dist(generator));  // Random theta orientation
+        p.weight = sampleWeight;  // Initialize with equal weight
+        p.pose.utime = 0.0; //std::time(nullptr)
+        p.parent_pose = p.pose;
+    }
 
 }
 
@@ -42,7 +74,7 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
                                                         const OccupancyGrid& map)
 {
     bool hasRobotMoved = actionModel_.updateAction(odometry);
-
+    
     auto prior = resamplePosteriorDistribution(map);
     auto proposal = computeProposalDistribution(prior);
     posterior_ = computeNormalizedPosterior(proposal, laser, map);
@@ -94,8 +126,47 @@ ParticleList ParticleFilter::resamplePosteriorDistribution(const OccupancyGrid& 
 {
     //////////// TODO: Implement your algorithm for resampling from the posterior distribution ///////////////////
     
+    /*double sampleWeight = 1.0/kNumParticles_;
+
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::normal_distribution<> dist(0.0, 0.04);
+
+    for (auto& p : prior) {
+        
+        Point<int> pCell;
+        do{
+            p.pose.x = posteriorPose_.x + dist(generator);  // Random x position
+            p.pose.y = posteriorPose_.y + dist(generator);  // Random y position
+            Point<double> p_point(p.pose.x, p.pose.y);
+            pCell = global_position_to_grid_cell(p_point, map);
+
+        }while(!map.isCellInGrid(pCell.x, pCell.y));
+
+        p.pose.theta = posteriorPose_.theta + dist(generator);  // Random theta orientation
+        p.weight = sampleWeight;  // Initialize with equal weight
+        p.pose.utime = posteriorPose_.utime;
+        p.parent_pose = posteriorPose_;
+    }*/
+    ParticleList prior = posterior_;
+
+    if(keep_best){
+        prior = importanceSample(kNumParticles_, prior);
+    }
+    else{
+        prior = lowVarianceSample(kNumParticles_, prior);
+    }
     
-    return ParticleList();  // Placeholder
+    if(reinvigorate){
+        reinvigoratePriorDistribution(prior);
+    }
+
+    /*
+    calculateDistributionQuality(prior);
+    
+    */
+
+    return prior;  // Placeholder
 }
 
 
@@ -103,9 +174,37 @@ ParticleList ParticleFilter::resamplePosteriorDistribution(const bool keep_best,
                                                            const bool reinvigorate)
 {
     //////////// TODO: Implement your algorithm for resampling from the posterior distribution ///////////////////
+    /*
+    ParticleList prior = posterior_;
+    double sampleWeight = 1.0/kNumParticles_;
+
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::normal_distribution<> dist(0.0, 0.04);
+
+    for(auto &p: prior){
+        p.pose.x = posteriorPose_.x + dist(generator);
+        p.pose.y = posteriorPose_.y + dist(generator);
+        p.pose.theta = posteriorPose_.theta + dist(generator);
+        p.weight = sampleWeight;
+        p.pose.utime =  posteriorPose_.utime;
+        p.parent_pose = posteriorPose_;
+    }
+    */
+    ParticleList prior = posterior_;
+
+    if(keep_best){
+        prior = importanceSample(kNumParticles_, prior);
+    }
+    else{
+        prior = lowVarianceSample(kNumParticles_, prior);
+    }
     
-    
-    return ParticleList();  // Placeholder
+    if(reinvigorate){
+        reinvigoratePriorDistribution(prior);
+    }
+  
+    return prior;  // Placeholder
 }
 
 
@@ -155,9 +254,12 @@ void ParticleFilter::reinvigoratePriorDistribution(ParticleList& prior)
 ParticleList ParticleFilter::computeProposalDistribution(const ParticleList& prior)
 {
     //////////// TODO: Implement your algorithm for creating the proposal distribution by sampling from the ActionModel
+    ParticleList proposal;
+    for(auto &p : prior){
+        proposal.push_back(actionModel_.applyAction(p));
+    }
     
-    
-    return ParticleList();  // Placeholder
+    return proposal;  // Placeholder
 }
 
 
@@ -167,9 +269,21 @@ ParticleList ParticleFilter::computeNormalizedPosterior(const ParticleList& prop
 {
     /////////// TODO: Implement your algorithm for computing the normalized posterior distribution using the
     ///////////       particles in the proposal distribution
+    ParticleList posterior;
+    double weightSum = 0.0;
 
+    for(auto &p : proposal){
+        mbot_lcm_msgs::particle_t p_weighted = p;
+        p_weighted.weight = sensorModel_.likelihood(p_weighted, laser, map);
+        weightSum += p_weighted.weight;
+        posterior.push_back(p_weighted);
+    }
+
+    for(auto &p : posterior){
+        p.weight /= weightSum;
+    }
     
-    return ParticleList();  // Placeholder
+    return posterior;  // Placeholder
 }
 
 
@@ -180,13 +294,15 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::estimatePosteriorPose(const ParticleList
     // Weighted average is simple, but could be very bad
     // Maybe only take the best x% and then average.
 
+    ParticleList sortedPosterior = getSortedParticlesByWeight(posterior);
+
+    ParticleList bestPosterior(sortedPosterior.begin(), sortedPosterior.begin() + sortedPosterior.size() * 0.5);
 
     mbot_lcm_msgs::pose2D_t pose;
-    
+
+    pose = computeParticlesAverage(bestPosterior);
 
     return pose;
-
-
 }
 
 mbot_lcm_msgs::pose2D_t ParticleFilter::computeParticlesAverage(const ParticleList& particles_to_average)
@@ -216,4 +332,39 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::computeParticlesAverage(const ParticleLi
     avg_pose.theta = std::atan2(theta_y, theta_x);
 
     return avg_pose;
+}
+
+/*---------------------- User Defined Functions -------------------*/
+// Function to sort ParticleList by weight in descending order
+ParticleList ParticleFilter::getSortedParticlesByWeight(const ParticleList& particles) {
+    ParticleList sorted_particles = particles;  // Copy the original list
+
+    std::sort(sorted_particles.begin(), sorted_particles.end(), [](const mbot_lcm_msgs::particle_t& a, const mbot_lcm_msgs::particle_t& b) {
+        return a.weight > b.weight;  // Sort in descending order by weight
+    });
+
+    return sorted_particles;  // Return the sorted list
+}
+
+void ParticleFilter::calculateDistributionQuality(const ParticleList& particles){
+    double weightSum = 0.0;
+    double weightSquaredSum = 0.0;
+
+    for (const auto& p : particles) {
+        weightSum += p.weight;
+        weightSquaredSum += p.weight * p.weight;
+    }
+
+    double meanWeight = weightSum / particles.size();
+
+    double weightVariance = (weightSquaredSum / particles.size()) - (meanWeight * meanWeight);
+    double maxVariance = 0.25;  // Example value; this could depend on your application
+
+    // Normalize the variance
+    double distribution_quality = 1.0 - (weightVariance / maxVariance);
+    
+    // Ensure the value is between 0 and 1
+    if(distribution_quality < 0.0) distribution_quality = 0.0;
+    else if(distribution_quality > 1.0) distribution_quality = 1.0;
+  
 }
