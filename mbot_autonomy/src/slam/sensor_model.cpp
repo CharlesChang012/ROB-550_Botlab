@@ -22,11 +22,10 @@ void SensorModel::initialize_bfs_offsets()
     /// TODO: Initialize the BFS offsets based on the search range 
     bfs_offsets_.clear();
 
-    for(int x = -search_range; x <= search_range; x++){
-        for(int y = -search_range; y <= search_range; y++){
-            bfs_offsets_.emplace_back(x, y);
-        }
-    }
+    bfs_offsets_.emplace_back(-1, 0);
+    bfs_offsets_.emplace_back(0, -1);
+    bfs_offsets_.emplace_back(1, 0);
+    bfs_offsets_.emplace_back(0, 1);
 }
 
 double SensorModel::likelihood(const mbot_lcm_msgs::particle_t& sample, 
@@ -46,11 +45,9 @@ double SensorModel::likelihood(const mbot_lcm_msgs::particle_t& sample,
         }
     }
     
-    /*
-    for(auto &ray : movingScan){
+    /*for(auto &ray : movingScan){
         scanScore += scoreRay(ray, map);
-    }
-    */
+    }*/
     
     return scanScore; // Placeholder
 }
@@ -59,25 +56,28 @@ double SensorModel::scoreRay(const adjusted_ray_t& ray, const OccupancyGrid& map
 {
     /// TODO: Compute a score for a given ray based on its end point and the map. 
     // Consider the offset from the nearest occupied cell.  
+    double score = 0.0;
+
     Point<float> rayEnd = getRayEndPointOnMap(ray, map);
-    Point<int> rayEndCell;
-    rayEndCell.x = static_cast<int>(rayEnd.x);
-    rayEndCell.y = static_cast<int>(rayEnd.y);
+    Point<int> rayEndCell = {static_cast<int>(rayEnd.x), static_cast<int>(rayEnd.y)};
+    //printf("RayEndCell: %d, %d\n", rayEndCell.x, rayEndCell.y);
 
     Point<int> nearestCell = gridBFS(rayEndCell, map);
-    double dist = distanceBtwTwoCells(rayEndCell, nearestCell);
-
-    double score = 0.0;
-    if(dist == 0.0){
-        score = 2;
+    
+    if(nearestCell.x == map.widthInCells() && nearestCell.y == map.heightInCells()){
+        return score;
     }
-    else if(dist > 1.0){
-        score = 1/dist;
+
+    double dist = distanceBtwTwoCells(rayEndCell, nearestCell);
+    //printf("Dist: %f\n", dist);
+    if(dist == 0.0){
+        score = 2.0;
     }
     else{
-        score = 1;
+        score = 1/dist;
     }
-    
+    //score = NormalPdf(dist);
+    //printf("Score: %f\n", score);
     return score; // Placeholder
 }
 
@@ -93,24 +93,15 @@ Point<int> SensorModel::gridBFS(const Point<int> end_point, const OccupancyGrid&
     std::queue<Point<int>> bfsQueue;
     std::vector<std::vector<bool>> visited(map.widthInCells(), std::vector<bool>(map.heightInCells(), false));
     
-    // Use the offsets to guide the search around the ray's endpoint
-    for (const auto& offset : bfs_offsets_) {
-        Point<int> neighbor = {end_point.x + offset.x, end_point.y + offset.y};
+    bfsQueue.push(end_point);
+    visited[end_point.x][end_point.y] = true;
 
-        // Check boundaries and if the neighbor is not visited
-        if (map.isCellInGrid(neighbor.x, neighbor.y) && 
-            !visited[neighbor.x][neighbor.y]) {
-            
-            visited[neighbor.x][neighbor.y] = true;
-            bfsQueue.push(neighbor);
-        }
-    }
-    
     // Perform BFS within the offset-guided search space
     while (!bfsQueue.empty()) {
         Point<int> current = bfsQueue.front();
         bfsQueue.pop();
-        
+        visited[current.x][current.y] = true;
+
         // Check if the current cell is occupied
         if (map.logOdds(current.x, current.y) > 0.0) {
             return current;  // Return the first occupied cell found
@@ -122,16 +113,17 @@ Point<int> SensorModel::gridBFS(const Point<int> end_point, const OccupancyGrid&
             
             // Check boundaries and if the neighbor is already visited
             if (map.isCellInGrid(neighbor.x, neighbor.y) && 
-                !visited[neighbor.x][neighbor.y]) {
+                !visited[neighbor.x][neighbor.y]  && distanceBtwTwoCells(end_point, neighbor) <= search_range) {
                 
-                visited[neighbor.x][neighbor.y] = true;
                 bfsQueue.push(neighbor);
             }
         }
     }
-        
+    Point<int> default_p;
+    default_p.x = map.widthInCells();
+    default_p.y = map.heightInCells();
     // If no occupied cell is found within the search range, return a default point   
-    return Point<int>(0,0); // Placeholder
+    return default_p; // Placeholder
 }
 
 Point<float> SensorModel::getRayEndPointOnMap(const adjusted_ray_t& ray, const OccupancyGrid& map)
