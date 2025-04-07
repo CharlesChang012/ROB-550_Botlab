@@ -6,6 +6,7 @@
 #include <planning/obstacle_distance_grid.hpp>
 #include <utils/grid_utils.hpp>
 #include <queue>
+#include <utils/geometric/angle_functions.hpp>
 
 typedef Point<int> cell_t;
 
