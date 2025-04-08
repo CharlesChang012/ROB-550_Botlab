@@ -89,10 +89,20 @@ bool MotionPlanner::isValidGoal(const Point<int>& goalCell) const
 
 bool MotionPlanner::isPathSafe(const mbot_lcm_msgs::path2D_t& path) const
 {
-
     ///////////// TODO: Implement your test for a safe path here //////////////////
 
-    return true;
+    for(const auto& pose : path.path)
+    {
+        auto cell = global_position_to_grid_cell(Point<double>(pose.x, pose.y), distances_);
+
+        // Check if the cell is within the grid and far enough from obstacles
+        if(!distances_.isCellInGrid(cell.x, cell.y) || distances_(cell.x, cell.y) <= params_.robotRadius)
+        {
+            return false; // Path is not safe
+        }
+    }
+
+    return true; // Path is safe
 }
 
 
