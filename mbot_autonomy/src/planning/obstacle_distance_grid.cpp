@@ -54,12 +54,6 @@ void ObstacleDistanceGrid::setDistances(const OccupancyGrid& map)
         auto nextNode = searchQueue.top();
         searchQueue.pop();
         expand_node(nextNode, *this, searchQueue);
- 
-        if(this->distance(nextNode.cell.x, nextNode.cell.y) < 0 || this->distance(nextNode.cell.x, nextNode.cell.y) > nextNode.distance * metersPerCell_)
-        {
-            // Update the distance to the nearest obstacle
-            this->distance(nextNode.cell.x, nextNode.cell.y) = nextNode.distance * metersPerCell_;
-        } 
     }
 }
 
@@ -121,14 +115,14 @@ void expand_node(const DistanceNode& node, ObstacleDistanceGrid& grid, std::prio
         cell_t adjacentCell(node.cell.x + xDeltas[n], node.cell.y + yDeltas[n]);
         if (grid.isCellInGrid(adjacentCell.x, adjacentCell.y))
         {
+            float distance = node.distance;
+            if (n < 4) distance += 1.0;
+            else distance += 1.414;
             // Not seen yet
-            if (grid(adjacentCell.x, adjacentCell.y) < 0)
+            if (grid(adjacentCell.x, adjacentCell.y) < 0 || grid(adjacentCell.x, adjacentCell.y) > distance * grid.metersPerCell()) 
             {
-                float distance = node.distance;
-                if (n < 4) distance += 1.0;
-                else distance += 1.414;
                 DistanceNode adjacentNode(adjacentCell, distance);
-                //grid(adjacentCell.x, adjacentCell.y) = adjacentNode.distance * grid.metersPerCell();
+                grid(adjacentCell.x, adjacentCell.y) = adjacentNode.distance * grid.metersPerCell();
                 search_queue.push(adjacentNode);
             }
         }
