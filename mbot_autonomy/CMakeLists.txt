@@ -122,6 +122,20 @@ target_include_directories(astar_test PRIVATE
   include
 )
 
+# OBSTACLE_DISTANCE_GRID_TESTER
+add_executable(obstacle_distance_grid_test src/planning/obstacle_distance_grid_test.cpp
+  src/planning/obstacle_distance_grid.cpp
+  src/slam/occupancy_grid.cpp
+)
+target_link_libraries(obstacle_distance_grid_test
+  common_utils
+  lcm
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+target_include_directories(obstacle_distance_grid_test PRIVATE
+  include
+)
+
 # TODO: Remove from this project. Moved to LCM base repo.
 # TIMESYNC
 # add_executable(timesync src/mbot/timesync.cpp

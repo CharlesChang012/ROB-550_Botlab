@@ -54,6 +54,12 @@ void ObstacleDistanceGrid::setDistances(const OccupancyGrid& map)
         auto nextNode = searchQueue.top();
         searchQueue.pop();
         expand_node(nextNode, *this, searchQueue);
+ 
+        if(this->distance(nextNode.cell.x, nextNode.cell.y) < 0 || this->distance(nextNode.cell.x, nextNode.cell.y) > nextNode.distance * metersPerCell_)
+        {
+            // Update the distance to the nearest obstacle
+            this->distance(nextNode.cell.x, nextNode.cell.y) = nextNode.distance * metersPerCell_;
+        } 
     }
 }
 
@@ -122,7 +128,7 @@ void expand_node(const DistanceNode& node, ObstacleDistanceGrid& grid, std::prio
                 if (n < 4) distance += 1.0;
                 else distance += 1.414;
                 DistanceNode adjacentNode(adjacentCell, distance);
-                grid(adjacentCell.x, adjacentCell.y) = adjacentNode.distance * grid.metersPerCell();
+                //grid(adjacentCell.x, adjacentCell.y) = adjacentNode.distance * grid.metersPerCell();
                 search_queue.push(adjacentNode);
             }
         }
