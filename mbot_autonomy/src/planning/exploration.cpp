@@ -239,47 +239,73 @@ int8_t Exploration::executeExploringMap(bool initialize)
     *       -- You will likely be able to see the frontier before actually reaching the end of the path leading to it.
     */
 
-    /// TODO: Implement logic for finding and selecting 
-    //        the next frontier to explore and planning the path to it.
-    
-    
+    if (initialize)
+    {
+        // Reset exploration state if initializing
+        frontiers_.clear();
+        currentPath_.path.clear();
+        currentPath_.path_length = 0;
+        printf("Exploration re-initialized\n");
+    }
+
+    printf("Start finding frontiers\n");
+    frontiers_ = find_map_frontiers(currentMap_, currentPose_);
+    printf("End finding frontiers\n");
+
+    frontier_processing_t cur_frontier_processing_t = plan_path_to_frontier(frontiers_, currentPose_, currentMap_, planner_);
+    currentPath_ = cur_frontier_processing_t.path_selected;
 
     // Create the status message
     mbot_lcm_msgs::exploration_status_t status;
-    /// TODO: Implement the logic for updating the exploration status 
-    //        based on frontier reachability and path status.
-  
-    
 
-    // printf("Status: %d\n", status.status);
+    if (!frontiers_.empty() && currentPath_.path_length > 1)
+    { // In progress: frontiers left, and there's a valid path
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS;
+        printf("Found path to closest frontier\n");
+    }
+    else if (!frontiers_.empty() && currentPath_.path_length <= 1)
+    { // Failed: frontiers left, but no valid path
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
+    }
+    else
+    { // Complete: no frontiers left
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
+    }
+
     lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &status);
 
-    //Determine the next state
-    switch(status.status)
+    // Determine the next state
+    switch (status.status)
     {
-        // Don't change states if we're still a work-in-progress
-        case mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS:
-            return mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+    // Don't change states if we're still a work-in-progress
+    case mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS:
+        return mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
 
-        // If exploration is completed, then head home
-        case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
-            return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
+    // If exploration is completed, then head home
+    case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
+        return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
 
-        // If something has gone wrong and we can't reach all frontiers, then fail the exploration.
-        case mbot_lcm_msgs::exploration_status_t::STATUS_FAILED:
-            return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
+    // If something has gone wrong and we can't reach all frontiers, then fail the exploration.
+    case mbot_lcm_msgs::exploration_status_t::STATUS_FAILED:
+        return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
 
-        default:
-            std::cerr << "ERROR: Exploration::executeExploringMap: Set an invalid exploration status. Exploration failed!";
-            return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
+    default:
+        std::cerr << "ERROR: Exploration::executeExploringMap: Set an invalid exploration status. Exploration failed!";
+        return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
     }
 }
 
 
 int8_t Exploration::executeReturningHome(bool initialize)
 {
-
     printf("Returning home\n");
+
     //////////////////////// TODO: Implement your method for returning to the home pose ///////////////////////////
     /*
     * NOTES:
@@ -288,7 +314,16 @@ int8_t Exploration::executeReturningHome(bool initialize)
     *       (2) currentPath_.path_length > 1  :  currently following a path to the home pose
     */
 
-    
+    if (initialize)
+    {
+        // Reset the current path if initializing
+        currentPath_.path.clear();
+        currentPath_.path_length = 0;
+        printf("Returning home re-initialized\n");
+    }
+
+    currentPath_ = planner_.planPath(currentPose_, homePose_);
+    printf("Planned path to home\n");
 
     // Create the status message
     mbot_lcm_msgs::exploration_status_t status;
@@ -297,6 +332,9 @@ int8_t Exploration::executeReturningHome(bool initialize)
 
     double distToHome = distance_between_points(Point<float>(homePose_.x, homePose_.y),
                                                 Point<float>(currentPose_.x, currentPose_.y));
+
+    printf("distToHome : %f\n", distToHome);
+    
     // If we're within the threshold of home, then we're done.
     if(distToHome <= kReachedPositionThreshold)
     {
