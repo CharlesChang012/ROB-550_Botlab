@@ -241,7 +241,7 @@ bool test_saved_poses(const std::string& mapFile, const std::string& posesFile, 
     bool shouldExist;
 
     MotionPlannerParams plannerParams;
-    plannerParams.robotRadius = 0.1;
+    plannerParams.robotRadius = 0.1*1.01;
 
     MotionPlanner planner(plannerParams);
     planner.setMap(grid);
