@@ -19,59 +19,61 @@ mbot_lcm_msgs::path2D_t search_for_path(mbot_lcm_msgs::pose2D_t start,
     Node* goalNode = new Node(goalCell.x, goalCell.y);
     
     /* ------------- A star search implementation ------------*/
+    printf("\n");
     printf("Start node: %d, %d\n", startCell.x, startCell.y);
     printf("Goal node: %d, %d\n", goalCell.x, goalCell.y);
 
-    std::vector<Node*> closedList;  // Closed List to store explored nodes
-    
-    // Initialize start node
-    startNode->g_cost = 0.0;
-    startNode->h_cost = h_cost(startNode, goalNode, distances);
-    startNode->parent = NULL;
+    if(!found_path && distances.isCellInGrid(goalCell.x, goalCell.y)){
+        
+        std::vector<Node*> closedList;  // Closed List to store explored nodes
+        
+        // Initialize start node
+        startNode->g_cost = 0.0;
+        startNode->h_cost = h_cost(startNode, goalNode, distances);
+        startNode->parent = NULL;
 
-    PriorityQueue pq;
-    pq.push(startNode);
+        PriorityQueue pq;
+        pq.push(startNode);
 
-    while(!pq.empty()){
-        Node* curNode = pq.pop();
-        closedList.push_back(curNode);
+        while(!pq.empty()){
+            Node* curNode = pq.pop();
+            closedList.push_back(curNode);
 
-        // If goalNode reached
-        if(curNode->cell == goalNode->cell){
-            found_path = true;
-            goalNode->parent = curNode->parent; // Set the parent of the goal node to the current node
-            printf("Path found\n");
-            break;
-        }
-
-        std::vector<Node*> neighbors = expand_node(curNode, distances, params);
-
-        for(auto &neighbor : neighbors){
-
-            // Check if explored, pass this node
-            if(is_in_list(neighbor, closedList)){
-                continue;
+            // If goalNode reached
+            if(curNode->cell == goalNode->cell){
+                found_path = true;
+                goalNode->parent = curNode->parent; // Set the parent of the goal node to the current node
+                break;
             }
-  
-            neighbor->g_cost = g_cost(curNode, neighbor, distances, params);
-            neighbor->h_cost = h_cost(neighbor, goalNode, distances);
-            
-            // Check if is better path
-            if (!pq.is_member(neighbor)) {    // If not in checking list, push
-                neighbor->parent = curNode;
-                pq.push(neighbor);
-            } else {
-                Node* existingNode = pq.get_member(neighbor);
-                if (neighbor->g_cost < existingNode->g_cost) {  // If new path has lower cost, push
-                    existingNode->g_cost = neighbor->g_cost;
-                    existingNode->parent = curNode;
-                    //pq.push(existingNode); // Re-insert with the updated g_cost
+
+            std::vector<Node*> neighbors = expand_node(curNode, distances, params);
+
+            for(auto &neighbor : neighbors){
+
+                // Check if explored, pass this node
+                if(is_in_list(neighbor, closedList)){
+                    continue;
                 }
-            }
+    
+                neighbor->g_cost = g_cost(curNode, neighbor, distances, params);
+                neighbor->h_cost = h_cost(neighbor, goalNode, distances);
+                
+                // Check if is better path
+                if (!pq.is_member(neighbor)) {    // If not in checking list, push
+                    neighbor->parent = curNode;
+                    pq.push(neighbor);
+                } else {
+                    Node* existingNode = pq.get_member(neighbor);
+                    if (neighbor->g_cost < existingNode->g_cost) {  // If new path has lower cost, push
+                        existingNode->g_cost = neighbor->g_cost;
+                        existingNode->parent = curNode;
+                        //pq.push(existingNode); // Re-insert with the updated g_cost
+                    }
+                }
 
+            }
         }
     }
-    
     /* ------------------------------------------------------ */
     mbot_lcm_msgs::path2D_t path;
     path.utime = start.utime;
@@ -95,15 +97,10 @@ double h_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances)
 {
     double h_cost = 0.0;
     ////////////////// TODO: Implement your heuristic //////////////////////////
-    double dx = (from->cell.x - goal->cell.x);
-    double dy = (from->cell.y - goal->cell.y);
-    h_cost = std::sqrt(dx * dx + dy * dy);
-
-    // Incorporate obstacle distances into the heuristic
-    // float distanceToObstacle = distances(from->cell.x, from->cell.y);
-    // if (distanceToObstacle < 1.0) { // Penalize nodes close to obstacles
-    //     h_cost += (1.0 / distanceToObstacle);
-    // }
+    double dx = fabs(from->cell.x - goal->cell.x);
+    double dy = fabs(from->cell.y - goal->cell.y);
+    //h_cost = std::sqrt(dx * dx + dy * dy);
+    h_cost = (dx + dy) + (std::sqrt(2) - 2) * std::min(dx, dy);
 
     return h_cost;
 }
@@ -114,6 +111,11 @@ double g_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances, con
     ////////////////// TODO: Implement your goal cost, use obstacle distances //////////////////////////
     g_cost = from->g_cost;
 
+    double dx = fabs(goal->cell.x - from->cell.x);
+    double dy = fabs(goal->cell.y - from->cell.y);
+
+    g_cost += (dx + dy) + (std::sqrt(2) - 2) * std::min(dx, dy);
+    
     // Add cost related to distance from obstacles
     float distanceToObstacle = distances(goal->cell.x, goal->cell.y);
 
@@ -121,9 +123,7 @@ double g_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances, con
         //printf("g_cost pow: %f\n", pow(params.maxDistanceWithCost / distanceToObstacle, params.distanceCostExponent));
         g_cost += pow(params.maxDistanceWithCost / distanceToObstacle, params.distanceCostExponent);
     }
-    else{
-        g_cost += 1;
-    }
+
 
     return g_cost;
 }
@@ -132,12 +132,12 @@ std::vector<Node*> expand_node(Node* node, const ObstacleDistanceGrid& distances
 {
     std::vector<Node*> neighbors;
     ////////////////// TODO: Implement your expand node algorithm //////////////////////////
-    std::vector<Point<int>> moves = {Point<int>(1, 0), Point<int>(0, 1), Point<int>(-1, 0), Point<int>(0, -1)};
+    std::vector<Point<int>> moves = {Point<int>(1, 0), Point<int>(0, 1), Point<int>(-1, 0), Point<int>(0, -1), Point<int>(-1, -1), Point<int>(-1, 1), Point<int>(1, -1), Point<int>(1, 1)};
 
     for (auto &move : moves) {
         int newX = node->cell.x + move.x;
         int newY = node->cell.y + move.y;
-
+        //printf("distances(newX, newY): %f\n", distances(newX, newY));
         // Skip out-of-bounds nodes or node cell in obstacles
         if (!distances.isCellInGrid(newX, newY) || 
             distances(newX, newY) < params.minDistanceToObstacle) {
@@ -204,8 +204,8 @@ std::vector<mbot_lcm_msgs::pose2D_t> extract_pose_path(std::vector<Node*> nodes,
         //printf("pose: %f, %f, %f\n", p.x, p.y, p.theta);
         path.push_back(p);
     }
-    printf("Start node: %f, %f\n", path[0].x, path[0].y);
-    printf("Goal node: %f, %f\n", path.back().x, path.back().y);
+    //printf("Start node: %f, %f\n", path[0].x, path[0].y);
+    //printf("Goal node: %f, %f\n", path.back().x, path.back().y);
     return path;
 }
 
