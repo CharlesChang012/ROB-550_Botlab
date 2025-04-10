@@ -67,7 +67,6 @@ mbot_lcm_msgs::path2D_t search_for_path(mbot_lcm_msgs::pose2D_t start,
                     if (neighbor->g_cost < existingNode->g_cost) {  // If new path has lower cost, push
                         existingNode->g_cost = neighbor->g_cost;
                         existingNode->parent = curNode;
-                        //pq.push(existingNode); // Re-insert with the updated g_cost
                     }
                 }
 
@@ -99,7 +98,7 @@ double h_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances)
     ////////////////// TODO: Implement your heuristic //////////////////////////
     double dx = fabs(from->cell.x - goal->cell.x);
     double dy = fabs(from->cell.y - goal->cell.y);
-    //h_cost = std::sqrt(dx * dx + dy * dy);
+
     h_cost = (dx + dy) + (std::sqrt(2) - 2) * std::min(dx, dy);
 
     return h_cost;
@@ -120,10 +119,8 @@ double g_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances, con
     float distanceToObstacle = distances(goal->cell.x, goal->cell.y);
 
     if (distanceToObstacle < params.maxDistanceWithCost) {
-        //printf("g_cost pow: %f\n", pow(params.maxDistanceWithCost / distanceToObstacle, params.distanceCostExponent));
-        g_cost += pow(params.maxDistanceWithCost / distanceToObstacle, params.distanceCostExponent);
+       g_cost += pow(params.maxDistanceWithCost / distanceToObstacle, params.distanceCostExponent);
     }
-
 
     return g_cost;
 }
@@ -137,7 +134,7 @@ std::vector<Node*> expand_node(Node* node, const ObstacleDistanceGrid& distances
     for (auto &move : moves) {
         int newX = node->cell.x + move.x;
         int newY = node->cell.y + move.y;
-        //printf("distances(newX, newY): %f\n", distances(newX, newY));
+
         // Skip out-of-bounds nodes or node cell in obstacles
         if (!distances.isCellInGrid(newX, newY) || 
             distances(newX, newY) < params.minDistanceToObstacle) {
@@ -201,11 +198,9 @@ std::vector<mbot_lcm_msgs::pose2D_t> extract_pose_path(std::vector<Node*> nodes,
             p.theta = wrap_to_pi(std::atan2(dy, dx));  // Heading in radians
         }
 
-        //printf("pose: %f, %f, %f\n", p.x, p.y, p.theta);
         path.push_back(p);
     }
-    //printf("Start node: %f, %f\n", path[0].x, path[0].y);
-    //printf("Goal node: %f, %f\n", path.back().x, path.back().y);
+    
     return path;
 }
 
