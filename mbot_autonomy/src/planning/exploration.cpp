@@ -248,12 +248,16 @@ int8_t Exploration::executeExploringMap(bool initialize)
         printf("Exploration re-initialized\n");
     }
 
-    printf("Start finding frontiers\n");
-    frontiers_ = find_map_frontiers(currentMap_, currentPose_);
-    printf("End finding frontiers\n");
+    // If the current path is empty or the robot has reached the end of the path, update frontiers
+    if (currentPath_.path.empty() || distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
+                                                             Point<float>(currentPath_.path.back().x, currentPath_.path.back().y)) < kReachedPositionThreshold)
+    {
+        printf("Updating frontiers\n");
+        frontiers_ = find_map_frontiers(currentMap_, currentPose_);
 
-    frontier_processing_t cur_frontier_processing_t = plan_path_to_frontier(frontiers_, currentPose_, currentMap_, planner_);
-    currentPath_ = cur_frontier_processing_t.path_selected;
+        frontier_processing_t cur_frontier_processing_t = plan_path_to_frontier(frontiers_, currentPose_, currentMap_, planner_);
+        currentPath_ = cur_frontier_processing_t.path_selected;
+    }
 
     // Create the status message
     mbot_lcm_msgs::exploration_status_t status;
@@ -263,20 +267,19 @@ int8_t Exploration::executeExploringMap(bool initialize)
         status.utime = utime_now();
         status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS;
-        printf("Found path to closest frontier\n");
     }
-    else if (!frontiers_.empty() && currentPath_.path_length <= 1)
+    else if ((!frontiers_.empty() && currentPath_.path_length <= 1) || frontiers_.empty())
     { // Failed: frontiers left, but no valid path
-        status.utime = utime_now();
-        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
-        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
-    }
-    else
-    { // Complete: no frontiers left
         status.utime = utime_now();
         status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
     }
+    /*else
+    { // Complete: no frontiers left
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
+    }*/
 
     lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &status);
 
@@ -334,7 +337,7 @@ int8_t Exploration::executeReturningHome(bool initialize)
                                                 Point<float>(currentPose_.x, currentPose_.y));
 
     printf("distToHome : %f\n", distToHome);
-    
+
     // If we're within the threshold of home, then we're done.
     if(distToHome <= kReachedPositionThreshold)
     {
