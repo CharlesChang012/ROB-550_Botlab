@@ -387,4 +387,12 @@ int8_t Exploration::executeCompleted(bool initialize)
 int8_t Exploration::executeFailed(bool initialize)
 {
     // Send the execute failed forever. There is no way to recover.
-    mbot_lcm_msgs::exploration_status
+    mbot_lcm_msgs::exploration_status_t msg;
+    msg.utime = utime_now();
+    msg.state = mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
+    msg.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
+
+    lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &msg);
+
+    return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
+}
