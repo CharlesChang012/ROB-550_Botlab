@@ -23,6 +23,13 @@ Not yet ready...
     <img src="media/CP1_pure_pursuit_high_speed.jpg" alt="Maze pure pursuit motion controller high speed" style="width: 45%;" />
   </div>
 
+### Particle Filter Performances
+- **Particle Filter Update Time vs Particle Number**
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/PF_update_time.png" alt="Particle Filter Update Time vs Particle Number" style="width: 45%;" />
+  </div>
+
+
 ## Code structure
 
 ### Relevant

@@ -113,7 +113,7 @@ double g_cost(Node* from, Node* goal, const ObstacleDistanceGrid& distances, con
     double dx = fabs(goal->cell.x - from->cell.x);
     double dy = fabs(goal->cell.y - from->cell.y);
 
-    g_cost += (dx + dy) + (std::sqrt(2) - 2) * std::min(dx, dy);
+    g_cost += (dx + dy) + (std::sqrt(2) - 2.0) * std::min(dx, dy);
     
     // Add cost related to distance from obstacles
     float distanceToObstacle = distances(goal->cell.x, goal->cell.y);
@@ -200,7 +200,7 @@ std::vector<mbot_lcm_msgs::pose2D_t> extract_pose_path(std::vector<Node*> nodes,
 
         path.push_back(p);
     }
-    
+
     return path;
 }
 
