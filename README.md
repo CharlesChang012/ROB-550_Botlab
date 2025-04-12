@@ -29,6 +29,15 @@ Not yet ready...
     <img src="media/PF_update_time.png" alt="Particle Filter Update Time vs Particle Number" style="width: 45%;" />
   </div>
 
+- **Particle Filter RMS Error**
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/SLAM_RMS.png" alt="Particle Filter RMS Error" style="width: 45%;" />
+  </div>
+
+- **Robot SLAM Pose and Particles**
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/Robot_SLAM_pose_particle.png" alt="Robot SLAM pose particle" style="width: 45%;" />
+  </div>
 
 ## Code structure
 
@@ -45,11 +54,11 @@ Not yet ready...
 
 
 ### Irrelevant
-Not need to touch these files.
-- [media](media) - where we store media that used for README instructions
+No need to touch these files.
+- [media](media) - where I store media that used for README instructions
 
 ## How to start?
 Not yet ready...
 
 ## Reference
-Not yet ready...
+ROB 550 Web Page : https://rob550-docs.github.io/docs/botlab/getting-started.html
