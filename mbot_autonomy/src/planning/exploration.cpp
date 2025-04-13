@@ -257,6 +257,8 @@ int8_t Exploration::executeExploringMap(bool initialize)
 
         frontier_processing_t cur_frontier_processing_t = plan_path_to_frontier(frontiers_, currentPose_, currentMap_, planner_);
         currentPath_ = cur_frontier_processing_t.path_selected;
+
+        usleep(2000000);
     }
 
     // Create the status message
