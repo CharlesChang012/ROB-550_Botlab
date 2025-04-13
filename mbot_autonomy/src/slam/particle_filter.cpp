@@ -6,6 +6,7 @@
 #include <cassert>
 #include <utils/geometric/angle_functions.hpp>
 #include <ctime>
+#include <chrono>
 
 ParticleFilter::ParticleFilter(int numParticles)
 : kNumParticles_ (numParticles),
@@ -73,6 +74,9 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
                                                         const mbot_lcm_msgs::lidar_t& laser,
                                                         const OccupancyGrid& map)
 {
+    printf("Updating Particle Filter...\n");
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     bool hasRobotMoved = actionModel_.updateAction(odometry);
     
     auto prior = resamplePosteriorDistribution(map);
@@ -82,6 +86,10 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
     posteriorPose_ = estimatePosteriorPose(posterior_);
 
     posteriorPose_.utime = odometry.utime;
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    printf("Duration for PF to update: %f millisecond\n", static_cast<double>(duration));
 
     return posteriorPose_;
 }
