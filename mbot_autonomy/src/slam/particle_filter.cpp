@@ -39,26 +39,34 @@ void ParticleFilter::initializeFilterAtPose(const mbot_lcm_msgs::pose2D_t& pose)
 void ParticleFilter::initializeFilterRandomly(const OccupancyGrid& map)
 {
     ///////////// TODO: Implement your method for initializing the particles in the particle filter /////////////////
+    printf("Randomly Initialize particles\n");
+    
     std::random_device rd;
     std::mt19937 generator(rd());
 
     // Random number generation for the range of x, y, and theta values
-    std::uniform_real_distribution<> x_dist(0.0, map.widthInMeters());  // x within map bounds 
-    std::uniform_real_distribution<> y_dist(0.0, map.heightInMeters());  // y within map bounds 
+    std::uniform_real_distribution<> x_dist(-map.widthInMeters()/2, map.widthInMeters()/2);  // x within map bounds 
+    std::uniform_real_distribution<> y_dist(-map.heightInMeters()/2, map.heightInMeters()/2);  // y within map bounds 
     std::uniform_real_distribution<> theta_dist(-M_PI, M_PI);  // theta in the range [-pi, pi]
 
     double sampleWeight = 1.0/kNumParticles_;
 
+    int64_t cur_time = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count();
+
     for (auto &p : posterior_) {
-        p.pose.x = x_dist(generator);  // Random x position
-        p.pose.y = y_dist(generator);  // Random y position
-        // Point<double> p_pose_grid(x_dist(generator), y_dist(generator));
-        // Point<double> p_pose = grid_position_to_global_position(p_pose_grid, map);
-        // p.pose.x = p_pose.x;
-        // p.pose.y = p_pose.y;
-        p.pose.theta = wrap_to_pi(theta_dist(generator));  // Random theta orientation
+        while(true){
+            p.pose.x = x_dist(generator);  // Random x position
+            p.pose.y = y_dist(generator);  // Random y position
+            p.pose.theta = wrap_to_pi(theta_dist(generator));
+            Point<int> cell = global_position_to_grid_cell(Point<double>(p.pose.x, p.pose.y), map);
+            if (map.isCellInGrid(cell.x, cell.y) && map.logOdds(cell.x, cell.y) < 0) {
+                break;  // Valid pose in free space
+            }
+        }
+
         p.weight = sampleWeight;  // Initialize with equal weight
-        p.pose.utime = 0.0; //std::time(nullptr)
+        p.pose.utime = cur_time;
         p.parent_pose = p.pose;
     }
 
@@ -74,8 +82,8 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
                                                         const mbot_lcm_msgs::lidar_t& laser,
                                                         const OccupancyGrid& map)
 {
-    printf("Updating Particle Filter...\n");
-    auto start_time = std::chrono::high_resolution_clock::now();
+    // printf("Updating Particle Filter...\n");
+    // auto start_time = std::chrono::high_resolution_clock::now();
 
     bool hasRobotMoved = actionModel_.updateAction(odometry);
     
@@ -87,9 +95,9 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
 
     posteriorPose_.utime = odometry.utime;
 
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    printf("Duration for PF to update: %f millisecond\n", static_cast<double>(duration));
+    // auto end_time = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    // printf("Duration for PF to update: %f millisecond\n", static_cast<double>(duration));
 
     return posteriorPose_;
 }
