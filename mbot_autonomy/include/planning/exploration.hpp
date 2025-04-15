@@ -14,6 +14,8 @@
 #include <mutex>
 #include <set>
 #include <iostream>
+#include <mbot_lcm_msgs/mbot_cone_array_t.hpp>
+#include <mbot_lcm_msgs/mbot_cone_t.hpp>
 
 
 /**
@@ -37,6 +39,15 @@
 *       stop the robot, exit with FAILURE
 *
 */
+enum ConeColor
+{
+    RED = 0,
+    PINK = 1,
+    YELLOW = 2,
+    GREEN = 3,
+    BLUE = 4,
+};
+
 class Exploration
 {
 public:
@@ -74,6 +85,9 @@ public:
     void handlePose(const lcm::ReceiveBuffer* rbuf, const std::string& channel, const mbot_lcm_msgs::pose2D_t* pose);
     void handleConfirmation(const lcm::ReceiveBuffer* rbuf, const std::string& channel, const mbot_lcm_msgs::mbot_message_received_t* confirm);
 
+    void handleCone(const lcm::ReceiveBuffer* rbuf, const std::string& channel, const mbot_lcm_msgs::mbot_cone_array_t* cone_array);
+    mbot_lcm_msgs::mbot_cone_t camera2WorldFrame(mbot_lcm_msgs::mbot_cone_t cone);
+    ConeColor string2ConeColor(const std::string& name);
 private:
     // Current state and data associated with the update -- use these variables for your exploration computations
     int8_t state_;                      // Current state of the high-level exploration state machine, as defined in exploration_status_t
@@ -126,7 +140,10 @@ private:
     int8_t executeFailed(bool initialize);
 
     /////////// TODO: Add any additional methods you might need here //////////////
-
+    std::vector<mbot_lcm_msgs::mbot_cone_t> currentConeArray_; // Current cone array being used for exploration
+    std::vector<mbot_lcm_msgs::mbot_cone_t> HeadingConeArray_;
+    int8_t executeHeadingToCones(bool initialize);
 };
+
 
 #endif // PLANNING_EXPLORATION_HPP

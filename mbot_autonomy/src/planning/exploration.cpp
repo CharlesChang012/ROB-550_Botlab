@@ -45,6 +45,9 @@ Exploration::Exploration(lcm::LCM* lcmInstance)
     lcmInstance_->subscribe(SLAM_POSE_CHANNEL, &Exploration::handlePose, this);
     lcmInstance_->subscribe(MESSAGE_CONFIRMATION_CHANNEL, &Exploration::handleConfirmation, this);
 
+    /* ----------- Cone Detection explorer ------------*/
+    lcmInstance_->subscribe("MBOT_CONE_ARRAY", &Exploration::handleCone, this);
+
     // Send an initial message indicating that the exploration module is initializing. Once the first map and pose are
     // received, then it will change to the exploring map state.
     mbot_lcm_msgs::exploration_status_t status;
@@ -105,6 +108,59 @@ void Exploration::handleConfirmation(const lcm::ReceiveBuffer* rbuf, const std::
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     if(confirm->channel == CONTROLLER_PATH_CHANNEL && confirm->creation_time == most_recent_path_time) pathReceived_ = true;
+}
+
+void Exploration::handleCone(const lcm::ReceiveBuffer* rbuf, const std::string& channel, const mbot_lcm_msgs::mbot_cone_array_t* cone_array)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+
+    if (cone_array->array_size == 0) {
+        //printf("no cone detected\n");
+    }
+    else{
+        for (auto& detection : cone_array->detections) {
+            bool found = false;
+            for (auto& currentCone : currentConeArray_) {
+                if (detection.name == currentCone.name) {
+                    found = true;
+                    break;
+                }
+            }
+    
+            if (!found) {
+                mbot_lcm_msgs::mbot_cone_t coneWorldFrame = camera2WorldFrame(detection);
+                currentConeArray_.push_back(coneWorldFrame);
+                planner_.updateConeDistance(coneWorldFrame);
+                printf("Cone detected: %s\n", detection.name.c_str());
+                printf("Cone pose at world frame: %f, %f\n", coneWorldFrame.pose.x, coneWorldFrame.pose.y);
+            }
+        }
+    }
+
+
+    // if(!currentConeArray_.empty()){
+    //     printf("Current position: (%f, %f)\n", currentPose_.x, currentPose_.y);
+    //     printf("Listing all cone detected\n");
+    //     for(const auto& cone : currentConeArray_)
+    //     {
+    //         printf("Cone position: (%f, %f)\n", cone.pose.x, cone.pose.y);
+    //     }
+    // }
+
+}
+
+ConeColor Exploration::string2ConeColor(const std::string& name)
+{
+    if (name == "red_cone")
+        return ConeColor::RED;
+    else if (name == "pink_cone")
+        return ConeColor::PINK;
+    else if (name == "yellow_cone")
+        return ConeColor::YELLOW;
+    else if (name == "green_cone")
+        return ConeColor::GREEN;
+    else if (name == "blue_cone")
+        return ConeColor::BLUE;
 }
 
 bool Exploration::isReadyToUpdate(void)
@@ -179,6 +235,10 @@ void Exploration::executeStateMachine(void)
             case mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION:
                 nextState = executeFailed(stateChanged);
                 break;
+
+            case mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES:
+                nextState = executeHeadingToCones(stateChanged);
+                break;
         }
 
         stateChanged = nextState != state_;
@@ -245,7 +305,7 @@ int8_t Exploration::executeExploringMap(bool initialize)
         frontiers_.clear();
         currentPath_.path.clear();
         currentPath_.path_length = 0;
-        printf("Exploration re-initialized\n");
+        printf("Exploration frontier re-initialized\n");
     }
 
     // If the current path is empty or the robot has reached the end of the path, update frontiers
@@ -292,9 +352,13 @@ int8_t Exploration::executeExploringMap(bool initialize)
     case mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS:
         return mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
 
-    // If exploration is completed, then head home
+    // If exploration is completed, then head home (Original Code)
+    // case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
+    //     return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
+
+    // If exploration is completed, then go to cones by color (For competition)
     case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
-        return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
+        return mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
 
     // If something has gone wrong and we can't reach all frontiers, then fail the exploration.
     case mbot_lcm_msgs::exploration_status_t::STATUS_FAILED:
@@ -328,7 +392,7 @@ int8_t Exploration::executeReturningHome(bool initialize)
     }
 
     currentPath_ = planner_.planPath(currentPose_, homePose_);
-    printf("Planned path to home\n");
+    //printf("Planned path to home\n");
 
     // Create the status message
     mbot_lcm_msgs::exploration_status_t status;
@@ -338,7 +402,7 @@ int8_t Exploration::executeReturningHome(bool initialize)
     double distToHome = distance_between_points(Point<float>(homePose_.x, homePose_.y),
                                                 Point<float>(currentPose_.x, currentPose_.y));
 
-    printf("distToHome : %f\n", distToHome);
+    //printf("distToHome : %f\n", distToHome);
 
     // If we're within the threshold of home, then we're done.
     if(distToHome <= kReachedPositionThreshold)
@@ -397,4 +461,119 @@ int8_t Exploration::executeFailed(bool initialize)
     lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &msg);
 
     return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_EXPLORATION;
+}
+
+/* --------------- User Defined for Competition ---------------*/
+mbot_lcm_msgs::mbot_cone_t Exploration::camera2WorldFrame(mbot_lcm_msgs::mbot_cone_t cone)
+{
+    mbot_lcm_msgs::mbot_cone_t coneWorldFrame = cone;
+
+    // Transform cone position from camera frame to world frame
+    float coneXCamera = cone.pose.z / 1000.0; // Convert from mm to meters
+    float coneYCamera = -cone.pose.x / 1000.0; // Convert from mm to meters
+
+    // Apply rotation and translation to transform to world frame
+    float cosTheta = cos(currentPose_.theta);
+    float sinTheta = sin(currentPose_.theta);
+
+    coneWorldFrame.pose.x = currentPose_.x + (coneXCamera * cosTheta - coneYCamera * sinTheta);
+    coneWorldFrame.pose.y = currentPose_.y + (coneXCamera * sinTheta + coneYCamera * cosTheta);
+
+    return coneWorldFrame;
+}
+
+int8_t Exploration::executeHeadingToCones(bool initialize)
+{
+    
+
+    //////////////////////// TODO: Implement your method for returning to the cone pose ///////////////////////////
+
+    if (initialize)
+    {
+        // Reset the current path if initializing
+        currentPath_.path.clear();
+        currentPath_.path_length = 0;
+
+        // Sort cones by color
+        HeadingConeArray_ = currentConeArray_;
+        std::sort(HeadingConeArray_.begin(), HeadingConeArray_.end(), [&](const mbot_lcm_msgs::mbot_cone_t& cone1, const mbot_lcm_msgs::mbot_cone_t& cone2) {
+            ConeColor color1 = string2ConeColor(cone1.name);
+            ConeColor color2 = string2ConeColor(cone2.name);
+            return color1 < color2;
+        });
+        printf("Heading to Cones Initialized\n");
+
+        for(auto &cone : HeadingConeArray_){
+            printf("Cone positions: (%f, %f)\n", cone.pose.x, cone.pose.y);
+        }
+    }
+
+    if((distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
+        Point<float>(currentPath_.path.back().x, currentPath_.path.back().y)) < kReachedPositionThreshold)){
+
+        printf("Cone reached!\n");
+        currentPath_.path.clear();
+        currentPath_.path_length = 0;
+    }
+
+    if((currentPath_.path.empty() || (distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
+        Point<float>(currentPath_.path.back().x, currentPath_.path.back().y)) < kReachedPositionThreshold)) 
+        && !HeadingConeArray_.empty()){
+        // Heading to first cone
+        mbot_lcm_msgs::mbot_cone_t currentCone_ = HeadingConeArray_.front();
+        HeadingConeArray_.erase(HeadingConeArray_.begin());
+
+        mbot_lcm_msgs::pose2D_t conePose;
+        conePose.x = currentCone_.pose.x;
+        conePose.y = currentCone_.pose.y;
+        printf("Current Position: (%f, %f)\n", currentPose_.x, currentPose_.y);
+        printf("Cone Position: (%f, %f)\n", conePose.x, conePose.y);
+        planner_.updateConeDistanceBack(currentCone_);
+        currentPath_ = planner_.planPath(currentPose_, conePose);
+    }
+
+
+    // Create the status message
+    mbot_lcm_msgs::exploration_status_t status;
+
+    if (currentPath_.path_length > 1)
+    { // In progress: cones left, and there's a valid path
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS;
+    }
+    else if (currentPath_.path_length <= 1 && !HeadingConeArray_.empty())
+    { // Failed: cones left, but no valid path
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
+    }
+    else if (HeadingConeArray_.empty())
+    { // Completed: no cones left
+        status.utime = utime_now();
+        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
+    }
+
+    lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &status);
+
+    // Determine the next state
+    switch (status.status)
+    {
+        // Don't change states if we're still a work-in-progress
+        case mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS:
+            return mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+
+        // If exploration is completed, then head home (Original Code)
+        case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
+            return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
+
+        // If something has gone wrong and we can't reach all frontiers, then fail the exploration.
+        case mbot_lcm_msgs::exploration_status_t::STATUS_FAILED:
+            return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_HEADING_TO_CONES;
+
+        default:
+            std::cerr << "ERROR: Exploration::executeHeadingToCones: Set an invalid exploration status. Heading to cone failed!";
+            return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_HEADING_TO_CONES;
+    }
 }

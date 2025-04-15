@@ -118,3 +118,17 @@ void MotionPlanner::setParams(const MotionPlannerParams& params)
     searchParams_.maxDistanceWithCost = 10.0 * searchParams_.minDistanceToObstacle;
     searchParams_.distanceCostExponent = 1.0;
 }
+
+void MotionPlanner::updateConeDistance(mbot_lcm_msgs::mbot_cone_t& cone)
+{
+    Point<double> ConePosition(cone.pose.x, cone.pose.y);
+    Point<int> coneCell = global_position_to_grid_cell(ConePosition, distances_);
+    distances_.setConeDistance(coneCell.x, coneCell.y);
+}
+
+void MotionPlanner::updateConeDistanceBack(mbot_lcm_msgs::mbot_cone_t& cone)
+{
+    Point<double> ConePosition(cone.pose.x, cone.pose.y);
+    Point<int> coneCell = global_position_to_grid_cell(ConePosition, distances_);
+    distances_.setConeDistanceBack(coneCell.x, coneCell.y);
+}

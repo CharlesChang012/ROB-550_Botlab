@@ -5,6 +5,7 @@
 #include <mbot_lcm_msgs/pose2D_t.hpp>
 #include <planning/astar.hpp>
 #include <planning/obstacle_distance_grid.hpp>
+#include <mbot_lcm_msgs/mbot_cone_t.hpp>
 
 //for visualization
 #include <vector>
@@ -150,6 +151,10 @@ public:
     * \return   ObstacleDistanceGrid currently being used by the motion planner.
     */
     ObstacleDistanceGrid obstacleDistances(void) const { return distances_; }
+
+    /* -------- User defined ----------*/
+    void updateConeDistance(mbot_lcm_msgs::mbot_cone_t& cone);
+    void updateConeDistanceBack(mbot_lcm_msgs::mbot_cone_t& cone);
 
 private:
 

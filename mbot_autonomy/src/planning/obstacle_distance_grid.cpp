@@ -82,6 +82,7 @@ void ObstacleDistanceGrid::resetGrid(const OccupancyGrid& map)
     height_ = map.heightInCells();
     
     cells_.resize(width_ * height_);
+    coneCells_.resize(width_ * height_);
 }
 
 void enqueue_obstacle_cells(const OccupancyGrid& map, 
@@ -137,4 +138,16 @@ bool is_cell_free(cell_t cell, const OccupancyGrid& map)
 bool is_cell_occupied(cell_t cell, const OccupancyGrid& map)
 {
     return map.logOdds(cell.x, cell.y) >= 0;
+}
+
+/*---------- User defined -----------*/
+void ObstacleDistanceGrid::setConeDistance(int x, int y) 
+{
+    coneCells_[cellIndex(x, y)] = cells_[cellIndex(x, y)];
+    cells_[cellIndex(x, y)] = 0.0;
+}
+
+void ObstacleDistanceGrid::setConeDistanceBack(int x, int y) 
+{
+    cells_[cellIndex(x, y)] = coneCells_[cellIndex(x, y)];
 }

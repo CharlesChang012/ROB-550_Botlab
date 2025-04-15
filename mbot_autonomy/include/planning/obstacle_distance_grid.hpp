@@ -90,9 +90,14 @@ public:
     float operator()(int x, int y) const { return cells_[cellIndex(x, y)]; }
     float& operator()(int x, int y) { return cells_[cellIndex(x, y)]; }
 
+    /* --------- User Defined -----------*/
+    void setConeDistance(int x, int y);
+    void setConeDistanceBack(int x, int y);
 private:
 
     std::vector<float> cells_;          ///< The actual grid -- stored in row-major order
+    std::vector<float> coneCells_; 
+
 
     int width_;                 ///< Width of the grid in cells
     int height_;                ///< Height of the grid in cells
