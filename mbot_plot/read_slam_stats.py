@@ -1,7 +1,7 @@
 '''
 Author: Po-Hsun Chang
 Email: pohsun@umich.edu
-Latest update date: 04/11/2025
+Latest update date: 04/16/2025
 '''
 
 import sys
@@ -62,7 +62,7 @@ print(len(gt_x))
 plt.figure(figsize=(8, 6))
 
 # Plot the trajectory of the robot
-plt.plot(x, y, linestyle='--', color='b', label="SLAM Pose")
+plt.plot(x, y, linestyle='-', color='b', label="SLAM Pose")
 
 # Plot the ground truth of the path
 plt.plot(matched_gt_x, matched_gt_y, linestyle='--', color='r', label="Ground Truth")
@@ -70,9 +70,16 @@ plt.plot(matched_gt_x, matched_gt_y, linestyle='--', color='r', label="Ground Tr
 # Calculate RMS error
 rms_error_x = np.sqrt(np.mean((np.array(matched_gt_x) - np.array(x))**2))
 rms_error_y = np.sqrt(np.mean((np.array(matched_gt_y) - np.array(y))**2))
+# Calculate standard deviation
+std_dev_x = np.std(np.array(matched_gt_x) - np.array(x))
+std_dev_y = np.std(np.array(matched_gt_y) - np.array(y))
 
 # Display RMS error on the plot
-plt.title(f"Slam Pose vs Ground Truth \n(RMS Error x: {rms_error_x:.4f}), (RMS Error y: {rms_error_y:.4f})")
+plt.title(f"Slam Pose vs Ground Truth")
+
+# Display standard deviation on the plot
+plt.text(0.98, 0.02, f"RMS Error x: {rms_error_x:.4f}\nRMS Error y: {rms_error_y:.4f}\nStd Dev x: {std_dev_x:.4f}\nStd Dev y: {std_dev_y:.4f}\n", 
+         transform=plt.gca().transAxes, fontsize=10, verticalalignment='bottom', horizontalalignment='right')
 
 plt.xlabel('X Position (m)')
 plt.ylabel('Y Position (m)')
