@@ -29,9 +29,9 @@ Not yet ready...
     <img src="media/PF_update_time.png" alt="Particle Filter Update Time vs Particle Number" style="width: 45%;" />
   </div>
 
-- **Particle Filter RMS Error**
+- **SLAM RMSE and STD**
   <div style="display: flex; justify-content: space-between;">
-    <img src="media/SLAM_RMS.png" alt="Particle Filter RMS Error" style="width: 45%;" />
+    <img src="media/SLAM_pose_stat.jpg" alt="SLAM RMSE and STD" style="width: 45%;" />
   </div>
 
 - **Robot SLAM Pose and Particles**
