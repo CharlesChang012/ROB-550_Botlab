@@ -306,7 +306,7 @@ Point<double> find_frontier_centroid(const frontier_t& frontier)
     int index = (int)(frontier.cells.size() / 2.0);
     // printf("index: %d, size: %d\n", index, frontier.cells.size());
     mid_point = frontier.cells[index];
-    printf("Mid point of frontier: (%f,%f)\n", mid_point.x, mid_point.y);
+    //printf("Mid point of frontier: (%f,%f)\n", mid_point.x, mid_point.y);
 
     return mid_point;
     // // use the geometric median instead
