@@ -41,35 +41,33 @@ void ParticleFilter::initializeFilterRandomly(const OccupancyGrid& map)
     ///////////// TODO: Implement your method for initializing the particles in the particle filter /////////////////
     printf("Randomly Initialize particles\n");
     
-    std::random_device rd;
-    std::mt19937 generator(rd());
+    // std::random_device rd;
+    // std::mt19937 generator(rd());
 
-    // Random number generation for the range of x, y, and theta values
-    std::uniform_real_distribution<> x_dist(-map.widthInMeters()/2, map.widthInMeters()/2);  // x within map bounds 
-    std::uniform_real_distribution<> y_dist(-map.heightInMeters()/2, map.heightInMeters()/2);  // y within map bounds 
-    std::uniform_real_distribution<> theta_dist(-M_PI, M_PI);  // theta in the range [-pi, pi]
+    // // Random number generation for the range of x, y, and theta values
+    // std::uniform_real_distribution<> x_dist(-map.widthInMeters()/2, map.widthInMeters()/2);  // x within map bounds 
+    // std::uniform_real_distribution<> y_dist(-map.heightInMeters()/2, map.heightInMeters()/2);  // y within map bounds 
+    // std::uniform_real_distribution<> theta_dist(-M_PI, M_PI);  // theta in the range [-pi, pi]
+
+    // int64_t cur_time = std::chrono::duration_cast<std::chrono::microseconds>(
+    //                 std::chrono::system_clock::now().time_since_epoch()).count();
 
     double sampleWeight = 1.0/kNumParticles_;
 
-    int64_t cur_time = std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::system_clock::now().time_since_epoch()).count();
+    RandomPoseSampler randomParticleGen_(map.bounds());
 
     for (auto &p : posterior_) {
         while(true){
-            p.pose.x = x_dist(generator);  // Random x position
-            p.pose.y = y_dist(generator);  // Random y position
-            p.pose.theta = wrap_to_pi(theta_dist(generator));
+            p = randomParticleGen_.get_particle(map);
+            p.pose.theta = 0.0;
             Point<int> cell = global_position_to_grid_cell(Point<double>(p.pose.x, p.pose.y), map);
-            if (map.isCellInGrid(cell.x, cell.y) && map.logOdds(cell.x, cell.y) < 0) {
+            if(map.logOdds(cell.x, cell.y) < 0){
                 break;  // Valid pose in free space
             }
         }
-
         p.weight = sampleWeight;  // Initialize with equal weight
-        p.pose.utime = cur_time;
         p.parent_pose = p.pose;
     }
-
 }
 
 void ParticleFilter::resetOdometry(const mbot_lcm_msgs::pose2D_t& odometry)
@@ -86,7 +84,25 @@ mbot_lcm_msgs::pose2D_t ParticleFilter::updateFilter(const mbot_lcm_msgs::pose2D
     // auto start_time = std::chrono::high_resolution_clock::now();
 
     bool hasRobotMoved = actionModel_.updateAction(odometry);
-    
+    ////////
+
+    if(!hasRobotMoved){
+
+        ParticleList sortedPaticles = getSortedParticlesByWeight(posterior_);
+
+        sortedPaticles = ParticleList(sortedPaticles.begin(), sortedPaticles.begin() + sortedPaticles.size() * 0.1);
+        posterior_ = sortedPaticles;
+        
+
+        for (auto p : sortedPaticles) {
+            for(int i = 0; i < 9; i++){
+                mbot_lcm_msgs::particle_t newP = p;
+                p.pose.theta = wrap_to_pi((i+1) * 40 * M_PI / 180.0);
+                posterior_.push_back(newP);
+            }
+        }
+    }
+    //////
     auto prior = resamplePosteriorDistribution(map);
     auto proposal = computeProposalDistribution(prior);
     posterior_ = computeNormalizedPosterior(proposal, laser, map);
@@ -190,23 +206,7 @@ ParticleList ParticleFilter::resamplePosteriorDistribution(const bool keep_best,
                                                            const bool reinvigorate)
 {
     //////////// TODO: Implement your algorithm for resampling from the posterior distribution ///////////////////
-    /*
-    ParticleList prior = posterior_;
-    double sampleWeight = 1.0/kNumParticles_;
-
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::normal_distribution<> dist(0.0, 0.04);
-
-    for(auto &p: prior){
-        p.pose.x = posteriorPose_.x + dist(generator);
-        p.pose.y = posteriorPose_.y + dist(generator);
-        p.pose.theta = posteriorPose_.theta + dist(generator);
-        p.weight = sampleWeight;
-        p.pose.utime =  posteriorPose_.utime;
-        p.parent_pose = posteriorPose_;
-    }
-    */
+  
     ParticleList prior = posterior_;
 
     if(keep_best){
