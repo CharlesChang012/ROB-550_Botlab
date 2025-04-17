@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     if(!lcmInstance.good()) return 1;
 
     Exploration exploration(&lcmInstance);
-
+    
     std::atomic<bool> explorationComplete;
 
     explorationComplete=false;

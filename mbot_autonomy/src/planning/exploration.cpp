@@ -307,7 +307,7 @@ int8_t Exploration::executeExploringMap(bool initialize)
         currentPath_.path_length = 0;
         printf("Exploration frontier re-initialized\n");
     }
-
+    /*
     // If the current path is empty or the robot has reached the end of the path, update frontiers
     if (currentPath_.path.empty() || distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
                                                              Point<float>(currentPath_.path.back().x, currentPath_.path.back().y)) < kReachedPositionThreshold)
@@ -336,12 +336,45 @@ int8_t Exploration::executeExploringMap(bool initialize)
         status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
     }
-    /*else
-    { // Complete: no frontiers left
-        status.utime = utime_now();
-        status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+    */
+
+    double minFrontierLength = 0.3;
+    frontiers_ = find_map_frontiers(currentMap_, currentPose_, minFrontierLength);
+
+    frontier_processing_t cur_frontier_processing_t = plan_path_to_frontier(frontiers_, currentPose_, currentMap_, planner_);
+    
+
+    if(frontiers_.size() - cur_frontier_processing_t.num_unreachable_frontiers > 0){
+        if(cur_frontier_processing_t.path_selected.path_length > 1){
+            currentPath_ = cur_frontier_processing_t.path_selected;
+            previousPath_ = currentPath_;
+        }
+    }
+
+    if(distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
+    Point<float>(currentPath_.path.back().x, currentPath_.path.back().y)) < kReachedPositionThreshold)
+    {
+        usleep(2000000);
+    }
+
+
+    // Create the status message
+    mbot_lcm_msgs::exploration_status_t status;
+    status.utime = utime_now();
+    status.state = mbot_lcm_msgs::exploration_status_t::STATE_EXPLORING_MAP;
+    
+    if (frontiers_.size() - cur_frontier_processing_t.num_unreachable_frontiers == 0 && utime_now() - previousPath_.utime > 3000000)
+    { 
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
-    }*/
+    }
+    else if (currentPath_.path_length > 1)
+    {
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS;
+    }
+    else{
+        status.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
+    }
+
 
     lcmInstance_->publish(EXPLORATION_STATUS_CHANNEL, &status);
 
@@ -373,8 +406,6 @@ int8_t Exploration::executeExploringMap(bool initialize)
 
 int8_t Exploration::executeReturningHome(bool initialize)
 {
-    printf("Returning home\n");
-
     //////////////////////// TODO: Implement your method for returning to the home pose ///////////////////////////
     /*
     * NOTES:
@@ -535,23 +566,19 @@ int8_t Exploration::executeHeadingToCones(bool initialize)
 
     // Create the status message
     mbot_lcm_msgs::exploration_status_t status;
+    status.utime = utime_now();
+    status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
 
     if (currentPath_.path_length > 1)
-    { // In progress: cones left, and there's a valid path
-        status.utime = utime_now();
-        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+    {   // In progress: cones left, and there's a valid path
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS;
     }
     else if (currentPath_.path_length <= 1 && !HeadingConeArray_.empty())
-    { // Failed: cones left, but no valid path
-        status.utime = utime_now();
-        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+    {   // Failed: cones left, but no valid path
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_FAILED;
     }
     else if (HeadingConeArray_.empty())
-    { // Completed: no cones left
-        status.utime = utime_now();
-        status.state = mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
+    {   // Completed: no cones left
         status.status = mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE;
     }
 
@@ -564,11 +591,11 @@ int8_t Exploration::executeHeadingToCones(bool initialize)
         case mbot_lcm_msgs::exploration_status_t::STATUS_IN_PROGRESS:
             return mbot_lcm_msgs::exploration_status_t::STATE_HEADING_TO_CONES;
 
-        // If exploration is completed, then head home (Original Code)
+        // If exploration is completed, then head home
         case mbot_lcm_msgs::exploration_status_t::STATUS_COMPLETE:
             return mbot_lcm_msgs::exploration_status_t::STATE_RETURNING_HOME;
 
-        // If something has gone wrong and we can't reach all frontiers, then fail the exploration.
+        // If something has gone wrong and we can't reach all cones, then fail the exploration.
         case mbot_lcm_msgs::exploration_status_t::STATUS_FAILED:
             return mbot_lcm_msgs::exploration_status_t::STATE_FAILED_HEADING_TO_CONES;
 
