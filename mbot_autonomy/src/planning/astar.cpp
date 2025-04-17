@@ -19,9 +19,6 @@ mbot_lcm_msgs::path2D_t search_for_path(mbot_lcm_msgs::pose2D_t start,
     Node* goalNode = new Node(goalCell.x, goalCell.y);
     
     /* ------------- A star search implementation ------------*/
-    printf("\n");
-    printf("Start node: %d, %d\n", startCell.x, startCell.y);
-    printf("Goal node: %d, %d\n", goalCell.x, goalCell.y);
 
     if(!found_path && distances.isCellInGrid(goalCell.x, goalCell.y)){
         
