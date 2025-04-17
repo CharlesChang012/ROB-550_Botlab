@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     getopt_add_bool(gopt, '\0', kListeningMode, 0, "Given this flag, the system will listen for an lcm mode message.");
     getopt_add_string(gopt, '\0', kMapFile, "current.map", "Map to load if localization only, output map file if mapping mode.");
 
-    getopt_add_bool(gopt, '\0', kRandomParticleInitialization, 0, "Initial particles should be randomly distributed along the map.");
+    getopt_add_bool(gopt, '\0', kRandomParticleInitialization, 0, "Initial particles should be randomly distributed along the map.");    //user : 0
 
     if (!getopt_parse(gopt, argc, argv, 1) || getopt_get_bool(gopt, "help")) {
         printf("Usage: %s [options]", argv[0]);
