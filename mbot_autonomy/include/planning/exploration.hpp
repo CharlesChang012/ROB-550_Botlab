@@ -140,6 +140,7 @@ private:
     int8_t executeFailed(bool initialize);
 
     /////////// TODO: Add any additional methods you might need here //////////////
+    mbot_lcm_msgs::path2D_t previousPath_;
     std::vector<mbot_lcm_msgs::mbot_cone_t> currentConeArray_; // Current cone array being used for exploration
     std::vector<mbot_lcm_msgs::mbot_cone_t> HeadingConeArray_;
     int8_t executeHeadingToCones(bool initialize);
