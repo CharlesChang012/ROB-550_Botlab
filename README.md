@@ -23,6 +23,13 @@ Not yet ready...
     <img src="media/CP1_pure_pursuit_high_speed.jpg" alt="Maze pure pursuit motion controller high speed" style="width: 45%;" />
   </div>
 
+### PID controll for navigation in square with waypoints
+<div style="display: flex; justify-content: space-between;">
+  <img src="media/drive_square_smart_slow.png" alt="Square smart motion controller low speed" style="width: 45%;" />
+  <img src="media/drive_square_purePursuit_slow.png" alt="Square pure pursuit motion controller low speed" style="width: 45%;" />
+</div>
+
+
 ### Particle Filter Performances
 - **Particle Filter Update Time vs Particle Number**
   <div style="display: flex; justify-content: space-between;">
