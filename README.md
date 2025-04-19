@@ -25,8 +25,14 @@ Not yet ready...
 
 ### PID controll for navigation in square with waypoints
 <div style="display: flex; justify-content: space-between;">
-  <img src="media/drive_square_smart_slow.png" alt="Square smart motion controller low speed" style="width: 45%;" />
-  <img src="media/drive_square_purePursuit_slow.png" alt="Square pure pursuit motion controller low speed" style="width: 45%;" />
+  <figure style="width: 45%; text-align: center;">
+    <img src="media/drive_square_smart_slow.png" alt="Square smart motion controller low speed" style="width: 100%;" />
+    <figcaption>Smart Motion Controller</figcaption>
+  </figure>
+  <figure style="width: 45%; text-align: center;">
+    <img src="media/drive_square_purePursuit_slow.png" alt="Square pure pursuit motion controller low speed" style="width: 100%;" />
+    <figcaption>Pure Pursuit Motion Controller</figcaption>
+  </figure>
 </div>
 
 
