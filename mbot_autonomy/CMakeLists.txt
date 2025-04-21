@@ -170,11 +170,11 @@ target_include_directories(drive_square PRIVATE
   include
 )
 
-add_executable(drive_cp1 src/mbot/drive_cp1.cpp)
-target_link_libraries(drive_cp1
+add_executable(drive_maze src/mbot/drive_maze.cpp)
+target_link_libraries(drive_maze
   common_utils
   lcm
 )
-target_include_directories(drive_cp1 PRIVATE
+target_include_directories(drive_maze PRIVATE
   include
 )
