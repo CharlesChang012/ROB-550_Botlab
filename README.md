@@ -1,6 +1,6 @@
 # ROB 550 Botlab-w25 @ UMich
 ## Overview
-This repository presents the outcomes of the ROB-550 BotLab course at University of Michigan. University of Michigan’s mobile robot - Mbot Classic\cite{MbotClassic}, is implemented along with controls, SLAM (Simultaneous Localization and Mapping) system, and camera vision to interact with its surroundings. For basic control system, wheel odometry, a Bosch BHI160B IMU (Inertial Measurement Unit) and PID (Proportional - Integral - Derivative) control are applied. Through fine-tuning the control values, motion errors are corrected and thus it ensures desired motion along its path. SLAM system is implemented by integrating occupancy grid mapping for representation of the world and the widely-used particle filter estimation method with RPLiDAR sensor for localization. Arducam 5MP OV5647 camera module is equipped for real-time image capturing. The performance and accuracy of the implementation is analyzed and tested through a series of experiments. 
+This repository presents the outcomes of the ROB-550 BotLab course at University of Michigan. University of Michigan’s mobile robot - Mbot Classic [1], is implemented along with controls, SLAM (Simultaneous Localization and Mapping) system, and camera vision to interact with its surroundings. For basic control system, wheel odometry, a Bosch BHI160B IMU (Inertial Measurement Unit) and PID (Proportional - Integral - Derivative) control are applied. Through fine-tuning the control values, motion errors are corrected and thus it ensures desired motion along its path. SLAM system is implemented by integrating occupancy grid mapping for representation of the world and the widely-used particle filter estimation method with RPLiDAR sensor for localization. Arducam 5MP OV5647 camera module is equipped for real-time image capturing. The performance and accuracy of the implementation is analyzed and tested through a series of experiments. 
 
 
 **Table of content**
@@ -65,7 +65,35 @@ No need to touch these files.
 - [media](media) - where I store media that used for README instructions
 
 ## How to start?
-Not yet ready...
+### Start SLAM 
+1. Run the following command in the same directory in different tabs
+```bash
+$ cd mbot_ws/mbot_autonomy/build/
+$ ./mbot_motion_controller
+$ ./motion_planning_server
+$ ./exploration
+```
+ - Run initial SLAM mode
+  ```bash
+  $ ./mbot_slam
+  ```
+or
+ - Run random initial pose localization mode after map construction 
+  ```bash
+  $ ./mbot_slam --random-initial-pos --localization-only --map [path/to/recodedMap]
+  ```
+2. Run the image publisher
+```bash
+$ cd  mbot_ws/mbot_vision
+$ python3 tag_cone_lcm_publisher.py
+```
+3. (Optional) Run lcm logger to record data
+```bash
+$ cd mbot_ws/mbot_plot
+$ lcm-logger [logFileName]
+```
+### Plot Results
+Refer to [mbot_plot](mbot_plot) for scripts and instructions
 
 ## Reference
-ROB 550 Web Page : https://rob550-docs.github.io/docs/botlab/getting-started.html
+[1] ROB 550 Web Page : https://rob550-docs.github.io/docs/botlab/getting-started.html
