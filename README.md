@@ -1,6 +1,6 @@
 # ROB 550 Botlab-w25 @ UMich
 ## Overview
-Not yet ready...
+This repository presents the outcomes of the ROB-550 BotLab course at University of Michigan. University of Michigan’s mobile robot - Mbot Classic\cite{MbotClassic}, is implemented along with controls, SLAM (Simultaneous Localization and Mapping) system, and camera vision to interact with its surroundings. For basic control system, wheel odometry, a Bosch BHI160B IMU (Inertial Measurement Unit) and PID (Proportional - Integral - Derivative) control are applied. Through fine-tuning the control values, motion errors are corrected and thus it ensures desired motion along its path. SLAM system is implemented by integrating occupancy grid mapping for representation of the world and the widely-used particle filter estimation method with RPLiDAR sensor for localization. Arducam 5MP OV5647 camera module is equipped for real-time image capturing. The performance and accuracy of the implementation is analyzed and tested through a series of experiments. 
 
 
 **Table of content**
