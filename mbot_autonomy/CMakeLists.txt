@@ -178,3 +178,13 @@ target_link_libraries(drive_maze
 target_include_directories(drive_maze PRIVATE
   include
 )
+
+
+add_executable(drive_competition1 src/mbot/drive_competition1.cpp)
+target_link_libraries(drive_competition1
+  common_utils
+  lcm
+)
+target_include_directories(drive_competition1 PRIVATE
+  include
+)
