@@ -1,3 +1,8 @@
+'''
+Author: Po-Hsun Chang
+Email: pohsun@umich.edu
+Latest update date: 04/25/2025
+'''
 import matplotlib.pyplot as plt
 import numpy as np
 

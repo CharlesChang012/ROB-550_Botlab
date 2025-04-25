@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 # Check if the user has provided a log file as an argument
 if len(sys.argv) < 2:
-    sys.stderr.write("usage: read-log <logfile>\n")
+    sys.stderr.write("usage: python3 read_slam_stats.py -f [PathToLogFile]\n")
     sys.exit(1)
 
 # Open the event log file in read mode

@@ -1,7 +1,7 @@
 '''
 Author: Po-Hsun Chang
 Email: pohsun@umich.edu
-Latest update date: 05/20/2025
+Latest update date: 04/20/2025
 '''
 
 import sys
@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # Check if the user has provided a log file as an argument
 if len(sys.argv) < 2:
-    sys.stderr.write("usage: read-log <logfile>\n")
+    sys.stderr.write("usage: python3 plot_SLAM_pose_and_particle.py -f [PathToLogFile]\n")
     sys.exit(1)
 
 # Open the event log file in read mode
