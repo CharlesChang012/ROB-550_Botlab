@@ -113,7 +113,6 @@ void Exploration::handleConfirmation(const lcm::ReceiveBuffer* rbuf, const std::
 void Exploration::handleCone(const lcm::ReceiveBuffer* rbuf, const std::string& channel, const mbot_lcm_msgs::mbot_cone_array_t* cone_array)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
-
     if (cone_array->array_size == 0) {
         //printf("no cone detected\n");
     }
@@ -500,8 +499,14 @@ mbot_lcm_msgs::mbot_cone_t Exploration::camera2WorldFrame(mbot_lcm_msgs::mbot_co
     mbot_lcm_msgs::mbot_cone_t coneWorldFrame = cone;
 
     // Transform cone position from camera frame to world frame
-    float coneXCamera = cone.pose.z / 1000.0; // Convert from mm to meters
+    float coneXCamera = cone.pose.z / 1000.0 - 0.05; // Convert from mm to meters
     float coneYCamera = -cone.pose.x / 1000.0; // Convert from mm to meters
+    if(coneYCamera < 0){
+        coneYCamera += 0.05;
+    }
+    else{
+        coneYCamera -= 0.05;
+    }
 
     // Apply rotation and translation to transform to world frame
     float cosTheta = cos(currentPose_.theta);
@@ -537,6 +542,7 @@ int8_t Exploration::executeHeadingToCones(bool initialize)
         for(auto &cone : HeadingConeArray_){
             printf("Cone positions: (%f, %f)\n", cone.pose.x, cone.pose.y);
         }
+        printf("======================\n");
     }
 
     if((distance_between_points(Point<float>(currentPose_.x, currentPose_.y),
@@ -560,6 +566,13 @@ int8_t Exploration::executeHeadingToCones(bool initialize)
         printf("Current Position: (%f, %f)\n", currentPose_.x, currentPose_.y);
         printf("Cone Position: (%f, %f)\n", conePose.x, conePose.y);
         planner_.updateConeDistanceBack(currentCone_);
+        conePose.x -= 0.01;
+        if(conePose.y < 0){
+            conePose.y += 0.01;
+        }
+        else{
+            conePose.y -= 0.01;
+        }
         currentPath_ = planner_.planPath(currentPose_, conePose);
     }
 
