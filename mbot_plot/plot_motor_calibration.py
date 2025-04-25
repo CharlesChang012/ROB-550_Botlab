@@ -56,7 +56,7 @@ speeds_pos = np.linspace(0, 1, 100)
 colors = ['tab:blue', 'tab:orange', 'tab:green']
 
 # Create subplots
-fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(6, 8))
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(8, 4))
 #fig.suptitle("Wheel Speed Calibration")
 
 # Left wheel plot
