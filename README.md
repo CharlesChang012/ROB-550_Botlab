@@ -10,6 +10,11 @@ This repository presents the outcomes of the ROB-550 BotLab course at University
 - [Reference](#reference)
 
 ## Results
+### A* in autonomous frontier exploration
+  <div style="display: flex; justify-content: space-between;">
+    <img src="media/Astar_exploration.gif" alt="Astar exploration" style="width: 45%;" />
+  </div>
+
 ### PID controll for navigation through maze with waypoints
 - **Smart Motion Controller**  
   <div style="display: flex; justify-content: space-between;">
